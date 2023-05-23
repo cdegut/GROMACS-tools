@@ -4,18 +4,17 @@ Step by step, and files to run MD simulation using GROMACS and the oplsaam force
 
 ## Without any ligand
 ### Prepping the run
-Download the latest oplsaam force field
-
 Make a folder for the run
-Symlink to oplsaam.ff
+Download the latest oplsaam force field in your folder, or symlink to oplsaam.ff
 ```
 ln -s ../../oplsaam.ff/ oplsaam.ff
 ```
+Convert the pdb structure to a .gro file, delete present hydrogens, add new ones.
 ```
 gmx pdb2gmx -ignh -f starting_structure.pdb -o starting_structure.gro
 ```
-Use 1 oplsFF and 1 tip4p water (recomended)
-Generate a dodecahedron box
+Select "1" oplsFF and "1" tip4p water (recomended)
+Generate a dodecahedron box arround 1A the model
 ```
 gmx editconf -f starting_structure.gro -o struct_new_box -c -d 1.0 -bt dodecahedron
 ```
@@ -23,49 +22,15 @@ Solvate with proper water model
 ```
 gmx solvate -cp struct_new_box.gro -cs tip4p -o struct_box_water.gro -p topol.top
 ```
-Generate ions
+Generate ions, this will need to calculate the force field, so need to generate the first tpr file with grompp
 ```
-gmx grompp -f ions.mdp -c struct_box_water.gro -p topol.top -o ions.tpr
+gmx grompp -f mdpfiles/ions.mdp -c struct_box_water.gro -p topol.top -o ions.tpr
 gmx genion -s ions.tpr -o struct_box_water_ions.gro -p topol.top -pname NA -nname CL -neutral
 ```
 
-Run slurm script:
-As gromacs 2022.2 -update gpu doesn’t work with 4point water
+Run slurm script gmxready.slurm
 ```
-#!/usr/bin/env bash
-#SBATCH --account=bdyrk14
-#SBATCH --time=4:00:00
-#SBATCH --job-name=gmxPrep
-
-
-# Node resources:
-#SBATCH --partition=infer    # Choose either "gpu" or "infer" node type
-#SBATCH --gres=gpu:1       # One GPU per node max of 4 (plus 25% of node CPU and RAM per GPU)
-#SBATCH --nodes=1
-
-
-module load hecbiosim
-module load gromacs/2022.2
-
-##Run minimization
-gmx grompp -f minim.mdp -c struct_box_water_ions.gro -p topol.top -o minimisation.tpr
-gmx mdrun -v -deffnm minimisation
-
-
-##Run NVT equilibration
-gmx grompp -f nvt.mdp -c em.gro -r em.gro -p topol.top -o nvt.tpr
-gmx mdrun -v -deffnm nvt
-
-
-##Run NPT equilibration
-gmx grompp -f npt.mdp -c nvt.gro -r nvt.gro -t nvt.cpt -p topol.top -o npt.tpr
-gmx mdrun -v -deffnm npt
-
-
-##Run test 1ns simulation
-gmx grompp -f md1ns.mdp -c npt.gro -t npt.cpt -p topol.top -o md1ns.tpr
-##gmx mdrun -update gpu -pme gpu -v -deffnm md1ns update gpu doesn't work with virtual site (4p water)
-gmx mdrun -pme gpu -v -deffnm md1ns
+sbatch gmxready.slurm
 ```
 
 ## With a ligand
@@ -145,15 +110,15 @@ Protein_chain_A     1
 LIG                 1
 ```
 
-Classic dodecahedron box 
+dodecahedron box 
 ```
 gmx editconf -f starting_structure.gro -o struct_new_box.gro -c -d 1.0 -bt dodecahedron
 ```
-Solvate with proper water model
+Solvate
 ```
 gmx solvate -cp  struct_new_box.gro -cs tip4p -o  struct_box_water.gro -p topol.top
 ```
-Generate ions
+Ions
 ```
 gmx grompp -f ions.mdp -c struct_box_water.gro -p topol.top -o ions.tpr
 gmx genion -s ions.tpr -o struct_box_water_ions.gro -p topol.top -pname NA -nname CL -neutral
@@ -163,7 +128,7 @@ If non integer amount of charges : if the difference is small enough and is like
 
 Run the minimisation separately, it's very short can be run straight on the login server
 ```
-gmx grompp -f minim.mdp -c solv_ions.gro -p topol.top -o minimisation.tpr
+gmx grompp -f mdpfiles/minim.mdp -c solv_ions.gro -p topol.top -o minimisation.tpr
 gmx mdrun -v -deffnm minimisation
 ```
 
@@ -177,7 +142,10 @@ The grp need to be changed in the mdp files as
 ```
 tc-grps                 = Protein_LIG  Water_and_ions
 ```
-
+Run slurm script gmxready_ligand.slurm
+```
+sbatch gmxready_ligand.slurm
+```
 # Random things
 ## Simple analysis
 Center the trajectory after simulation using
