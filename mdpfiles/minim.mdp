@@ -1,4 +1,4 @@
-; minim.mdp - used as input into grompp to generate em.tpr
+; minim.mdp - used as input into grompp to generate minimisation.tpr
 ; Parameters describing what to do, when to stop and what to save
 ; Output control
 nstxout                 = 0         ; suppress bulky .trr file by specifying
