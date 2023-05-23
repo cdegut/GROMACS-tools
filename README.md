@@ -1,5 +1,6 @@
 # GROMACS-Run
 
+Step by step, and files to run MD simulation using GROMACS and the oplsaam forcefield on the bede cluster
 
 ## Without any ligand
 ### Prepping the run
