@@ -13,6 +13,12 @@
 module load hecbiosim
 module load gromacs/2022.2
 
+simulation_name=md550ns
 
-#gmx grompp -f md250ns.mdp -c npt.gro -t npt.cpt -p topol.top -o md250ns.tpr -n index.ndx
-gmx mdrun -pme gpu -v -deffnm md250ns
+
+#gmx grompp -f $simulation_name.mdp -c npt.gro -t npt.cpt -p topol.top -o $simulation_name.tpr -n index.ndx
+gmx mdrun -pme gpu -v -deffnm $simulation_name
+
+#do the trajectory alignement
+
+echo "1 0" | gmx trjconv -s $simulation_name.tpr -f $simulation_name.xtc -o $simulation_name_center.xtc -center -pbc mol -ur compact
