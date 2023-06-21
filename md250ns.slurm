@@ -21,4 +21,4 @@ gmx mdrun -pme gpu -v -deffnm $simulation_name
 
 #do the trajectory alignement
 
-echo "0 1" | gmx trjconv -s $simulation_name.tpr -f $simulation_name.xtc -o $simulation_name_center.xtc -center -pbc mol -ur compact
+echo "1 0" | gmx trjconv -s $simulation_name.tpr -f $simulation_name.xtc -o $simulation_name_center.xtc -center -pbc mol -ur compact
