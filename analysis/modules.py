@@ -1,4 +1,12 @@
 
+import numpy as np
+# Import matplotlib - for plotting data
+import matplotlib.pyplot as plt
+# Import statistics Library
+import statistics
+
+
+
 def do_trajectory_CAalignement(atomistic_system, sim_path, trajectory_file_name):
     import MDAnalysis.analysis.align as align
     average = align.AverageStructure(atomistic_system, atomistic_system, select='protein and name CA', ref_frame=0)
@@ -15,12 +23,10 @@ def do_trajectory_CAalignement(atomistic_system, sim_path, trajectory_file_name)
     print("align trajectory on the averaged one, save as " + sim_path + trajectory_file_name.split(".")[0] + "_aligned.xtc")
     aligner.run(verbose=True)
 
+
+
 ## Def some plotting functions
-import numpy as np
-# Import matplotlib - for plotting data
-import matplotlib.pyplot as plt
-# Import statistics Library
-import statistics
+##################################
 
 def plt_median(ax,array, n=1, positive=True, negative=True, label=False, inside=False):
     # plt median and +- stdev
@@ -42,12 +48,14 @@ def plt_median(ax,array, n=1, positive=True, negative=True, label=False, inside=
     
     return median, stdev
 
+
 def plt_smooth(ax,data_array,time_array,window):
     ## Use convolution to smooth an array on a sliding window anď plot it on the ax plot
     avg = np.convolve(data_array, np.ones(window)/window, mode='valid')
     slice_start = int(window/2-1)
     slice_finish = int(window/2)
     ax.plot(time_array[slice_start:-slice_finish]/1000, avg, label= str(window) + "ps avg")
+
 
 def edr_plot(energy_like_terms, ax1, data_label, unit=False, divide=False, edr_only = False):
     #get data
@@ -80,7 +88,9 @@ def edr_plot(energy_like_terms, ax1, data_label, unit=False, divide=False, edr_o
     if not edr_only:
         ax1.set_xlim(0, len(edr_data['Time'])/100)  
 
-def box_plot(energy_like_terms, axs):
+
+def box_plot(energy_like_terms):
+    fig, axs = plt.subplots(3, sharex=True)
     box_X_data = energy_like_terms.get_data('Box-X')
     box_Y_data = energy_like_terms.get_data('Box-Y')
     box_Z_data = energy_like_terms.get_data('Box-Z')
@@ -103,10 +113,19 @@ def box_plot(energy_like_terms, axs):
     for ax in axs:
         ax.set(ylabel='Size ($\AA$)', xlim=(0, len(box_Z_data['Time'])/100))
     
-    return len(box_Z_data['Time'])/100
+    #return 
+    xlim = len(box_Z_data['Time'])/100
+    fig.set(figheight=9)
+    # Set axis limits
+    plt.xlim(0, xlim)
+    plt.show()
 
-### RG
-def Rg (ax, atomistic_system):
+
+### RG ##########
+#################
+
+def Rg (atomistic_system):
+    fig, ax = plt.subplots()
     Rgyr = []
     protein = atomistic_system.select_atoms("protein")
     for ts in atomistic_system.trajectory:
@@ -132,32 +151,41 @@ def Rg (ax, atomistic_system):
 
     plt_smooth(ax,radius[1], radius[0],factor)
     plt_median(ax, radius[1], label=True)
+    # Show legend
+    plt.legend()
+    # Show plot
+    plt.show()
 
-## RMSD
+## RMSD ############
+####################
 
 def plot_RMSD(rmsd, time, RMSD_groups, RMSD_groups_name, plot_0):
     fig, axs = plt.subplots(len(RMSD_groups)+1)
     n = 2   
     for ax in axs:
-        ax.plot(time, rmsd[n],  label="RMSD backbone", alpha=0.4)
+        try:
+            ax.plot(time, rmsd[n],  label="RMSD backbone", alpha=0.4)
 
-        if len(rmsd[1]) > 10000:
-            plt_smooth(ax,rmsd[n],rmsd[1],1000)
-        else:
-            plt_smooth(ax,rmsd[n],rmsd[1],20)
+            if len(rmsd[1]) > 10000:
+                plt_smooth(ax,rmsd[n],rmsd[1],1000)
+            else:
+                plt_smooth(ax,rmsd[n],rmsd[1],20)
 
-        #smoothed and median + stddev view
-        plt_median(ax,rmsd[n],label=True)
+            #smoothed and median + stddev view
+            plt_median(ax,rmsd[n],label=True)
 
-        # Add axis labels
-        ax.set_ylabel("RMSD  ($\AA$)")
+            # Add axis labels
+            ax.set_ylabel("RMSD  ($\AA$)")
 
-        ax.set_title(RMSD_groups_name[n-2])
+            ax.set_title(RMSD_groups_name[n-2])
 
-        # Set axis limits
-        ax.set_xlim(plot_0,len(rmsd[n])/100)
-        ax.set_ylim(min(rmsd[n][plot_0+2:]),round(max(rmsd[n]),1)+0.1)
-        n = n + 1 
+            # Set axis limits
+            ax.set_xlim(plot_0,len(rmsd[n])/100)
+            ax.set_ylim(min(rmsd[n][plot_0+2:]),round(max(rmsd[n]),1)+0.1)
+            n = n + 1
+        except:
+            print("Group definition or name probably wrong")
+            break
 
     axs[-1].set_xlabel("Time (ns)")
     # Add legend
