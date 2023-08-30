@@ -13,7 +13,7 @@ Convert the pdb structure to a .gro file, delete present hydrogens, add new ones
 ```
 gmx pdb2gmx -ignh -f starting_structure.pdb -o starting_structure.gro
 ```
-Select "1" oplsFF and "1" tip4p water (recomended)
+Select "1" oplsFF and "1" tip4p water (recomended).\n
 Generate a dodecahedron box arround 1A the model
 ```
 gmx editconf -f starting_structure.gro -o struct_new_box -c -d 1.0 -bt dodecahedron
