@@ -27,6 +27,8 @@ Generate ions, this will need to calculate the force field, so need to generate 
 gmx grompp -f mdpfiles/ions.mdp -c struct_box_water.gro -p topol.top -o ions.tpr
 gmx genion -s ions.tpr -o struct_box_water_ions.gro -p topol.top -pname NA -nname CL -neutral
 ```
+option -conc ## to set concentration in mol/L
+
 
 Run slurm script gmxready.slurm
 ```
@@ -47,12 +49,15 @@ gmx mdrun -v -deffnm npt
 gmx grompp -f md1ns.mdp -c npt.gro -t npt.cpt -p topol.top -o md1ns.tpr
 gmx mdrun -pme gpu -v -deffnm md1ns
 ```
-run longer sym
+### Run longer sym
 ```
 gmx grompp -f md250ns.mdp -c md1ns.gro -t md1ns.cpt -p topol.top -o md250ns.tpr
 gmx mdrun -pme gpu -v -deffnm md250ns
-``` 
-
+```
+To detach command from terminal:
+```
+nohup gmx mdrun -pme gpu -v -deffnm md250ns > md250ns.log &; disown
+```
 ## With a ligand
 ### Docking
 Start by getting ligand, either the structure is simple enough to be directly drawn with  Avogadro.
@@ -167,6 +172,7 @@ Run slurm script gmxready_ligand.slurm
 ```
 sbatch gmxready_ligand.slurm
 ```
+
 # Random things
 ## Simple analysis
 Center the trajectory after simulation using
