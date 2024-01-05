@@ -123,6 +123,7 @@ Ions
 gmx grompp -f ions.mdp -c struct_box_water.gro -p topol.top -o ions.tpr
 gmx genion -s ions.tpr -o struct_box_water_ions.gro -p topol.top -pname NA -nname CL -neutral
 ```
+option -conc ## to set concentration in mol/L
 
 If non integer amount of charges : if the difference is small enough and is likely due to rounding error, redistribute the charge on the ligand in the itp file (had to remove 0.003 from ligand)
 
