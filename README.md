@@ -47,6 +47,11 @@ gmx mdrun -v -deffnm npt
 gmx grompp -f md1ns.mdp -c npt.gro -t npt.cpt -p topol.top -o md1ns.tpr
 gmx mdrun -pme gpu -v -deffnm md1ns
 ```
+run longer sym
+```
+gmx grompp -f md250ns.mdp -c md1ns.gro -t md1ns.cpt -p topol.top -o md250ns.tpr
+gmx mdrun -pme gpu -v -deffnm md250ns
+``` 
 
 ## With a ligand
 ### Docking
