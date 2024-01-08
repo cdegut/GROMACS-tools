@@ -179,7 +179,8 @@ Center the trajectory after simulation using
 ```
 gmx trjconv -s md1ns.tpr -f md1ns.xtc -o md1ns_center.xtc -center -pbc mol -ur compact
 ```
-Select 1 and 0
+Select 1 and 0 to get everything recenterd
+Or 1 and 1 to get only the protein centered on the box, and obtain a much smaller file
 
 Extract specific frame:
 ```
