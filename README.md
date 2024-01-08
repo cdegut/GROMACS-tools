@@ -58,6 +58,10 @@ To detach command from terminal:
 ```
 nohup gmx mdrun -pme gpu -v -deffnm md250ns > md250ns.log &; disown
 ```
+or using task-*spooler
+```
+tsp bash -c "gmx mdrun -pme gpu -v -deffnm md250ns > md250ns.log"
+```
 ## With a ligand
 ### Docking
 Start by getting ligand, either the structure is simple enough to be directly drawn with  Avogadro.
