@@ -27,12 +27,41 @@ Generate ions, this will need to calculate the force field, so need to generate 
 gmx grompp -f mdpfiles/ions.mdp -c struct_box_water.gro -p topol.top -o ions.tpr
 gmx genion -s ions.tpr -o struct_box_water_ions.gro -p topol.top -pname NA -nname CL -neutral
 ```
+option -conc ## to set concentration in mol/L
+
 
 Run slurm script gmxready.slurm
 ```
 sbatch gmxready.slurm
 ```
-
+or
+```
+##Run minimization
+gmx grompp -f minim.mdp -c struct_box_water_ions.gro -p topol.top -o em.tpr
+gmx mdrun -v -deffnm em
+##Run NVT equilibration
+gmx grompp -f nvt.mdp -c em.gro -r em.gro -p topol.top -o nvt.tpr
+gmx mdrun -v -deffnm nvt
+##Run NPT equilibration
+gmx grompp -f npt.mdp -c nvt.gro -r nvt.gro -t nvt.cpt -p topol.top -o npt.tpr
+gmx mdrun -v -deffnm npt
+##Run test 1ns simulation
+gmx grompp -f md1ns.mdp -c npt.gro -t npt.cpt -p topol.top -o md1ns.tpr
+gmx mdrun -pme gpu -v -deffnm md1ns
+```
+### Run longer sym
+```
+gmx grompp -f md250ns.mdp -c md1ns.gro -t md1ns.cpt -p topol.top -o md250ns.tpr
+gmx mdrun -pme gpu -v -deffnm md250ns
+```
+To detach command from terminal:
+```
+nohup gmx mdrun -pme gpu -v -deffnm md250ns > md250ns.log &; disown
+```
+or using task-*spooler
+```
+tsp bash -c "gmx mdrun -pme gpu -v -deffnm md250ns > md250ns.log"
+```
 ## With a ligand
 ### Docking
 Start by getting ligand, either the structure is simple enough to be directly drawn with  Avogadro.
@@ -123,6 +152,7 @@ Ions
 gmx grompp -f ions.mdp -c struct_box_water.gro -p topol.top -o ions.tpr
 gmx genion -s ions.tpr -o struct_box_water_ions.gro -p topol.top -pname NA -nname CL -neutral
 ```
+option -conc ## to set concentration in mol/L
 
 If non integer amount of charges : if the difference is small enough and is likely due to rounding error, redistribute the charge on the ligand in the itp file (had to remove 0.003 from ligand)
 
@@ -146,13 +176,15 @@ Run slurm script gmxready_ligand.slurm
 ```
 sbatch gmxready_ligand.slurm
 ```
+
 # Random things
 ## Simple analysis
 Center the trajectory after simulation using
 ```
 gmx trjconv -s md1ns.tpr -f md1ns.xtc -o md1ns_center.xtc -center -pbc mol -ur compact
 ```
-Select 1 and 0
+Select 1 and 0 to get everything recenterd
+Or 1 and 1 to get only the protein centered on the box, and obtain a much smaller file
 
 Extract specific frame:
 ```
