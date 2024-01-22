@@ -181,14 +181,14 @@ sbatch gmxready_ligand.slurm
 ## Simple analysis
 Center the trajectory after simulation using
 ```
-gmx trjconv -s md1ns.tpr -f md1ns.xtc -o md1ns_center.xtc -center -pbc mol -ur compact
+gmx trjconv -s md250ns.tpr -f md250ns.xtc -o md250ns_center_po.xtc -center -pbc mol -ur compact
 ```
-Select 1 and 0 to get everything recenterd
-Or 1 and 1 to get only the protein centered on the box, and obtain a much smaller file
+Select 1 and 1 to g get only the protein centered on the box, and obtain a much smaller file
+Or 1 and 0 to get everything
 
 Extract specific frame:
 ```
-gmx trjconv -s md1ns.tpr -f md1ns_center.xtc -o WTITE-0ns.pdb -dump 0
+gmx trjconv -s md250ns.tpr -f md250ns_center_po.xtc -o md250ns_start.pdb -dump 0
 ```
  
 ## Extend run
