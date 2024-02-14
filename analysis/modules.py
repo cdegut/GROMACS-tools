@@ -124,8 +124,9 @@ def box_plot(energy_like_terms):
 ### RG ##########
 #################
 
-def Rg (atomistic_system):
+def Rg(atomistic_system):
     fig, ax = plt.subplots()
+    fig.set(figwidth=12)
     Rgyr = []
     protein = atomistic_system.select_atoms("protein")
     for ts in atomistic_system.trajectory:
@@ -142,6 +143,9 @@ def Rg (atomistic_system):
 
     # Set axis limits
     ax.set_xlim(0, len(radius.T)/100 )
+    start, end = ax.get_xlim()
+    ax.xaxis.set_ticks(np.arange(start, end, 10))
+    ax.grid(visible = True, linestyle = '--', alpha=0.4)
 
     # plt median and + 1 stdev
     if len(radius[0]) > 1000:
@@ -155,6 +159,105 @@ def Rg (atomistic_system):
     plt.legend()
     # Show plot
     plt.show()
+
+    return Rgyr
+
+###############################
+### 3D Distances plots #######
+###############################
+
+def calculate_3D_distance(atomistic_system):
+    from MDAnalysis.analysis import distances
+
+    n_res = len(atomistic_system.residues.resids)
+    frames = len(atomistic_system.trajectory)
+    distances_3Darray = np.zeros((frames,n_res,n_res))
+
+    for ts in atomistic_system.trajectory:
+        res_com = atomistic_system.atoms.center_of_mass(compound='residues')
+        self_distances = distances.self_distance_array(res_com)
+        sq_dist_arr = np.zeros((n_res, n_res))
+        triu = np.triu_indices_from(sq_dist_arr, k=1)
+        sq_dist_arr[triu] = self_distances
+        sq_dist_arr.T[triu] = self_distances
+        distances_3Darray[ts.frame, :, :] = sq_dist_arr
+    
+    return distances_3Darray
+
+def plot_distances(Rgyr, distances_3Darray, contact_start, contact_finish, dist_max):
+    import matplotlib as mpl
+
+    #Replot the rgyr with AOI
+    radius = np.array(Rgyr)
+    radius = radius.T
+    # Plot the data - RMSF against residue index
+    fig, ax = plt.subplots()
+    fig.set(figwidth=12)
+    ax.set_xlabel('Time (ns)')
+    ax.set_ylabel('Rg  ($\AA$)')
+
+    # Set axis limits
+    ax.set_xlim(0, len(radius.T)/100 )
+    start, end = ax.get_xlim()
+    ax.xaxis.set_ticks(np.arange(start, end, 10))
+    ax.grid(visible = True, linestyle = '--', alpha=0.4)
+
+
+    #ax.vlines(10, start, end, colors='k', linestyles='dotted')
+
+    # plt median and + 1 stdev
+    if len(radius[0]) > 1000:
+        factor = 1000
+    else:
+        factor = 10
+
+    plt_smooth(ax,radius[1], radius[0],factor)
+    plt.axvspan(contact_start, contact_finish, color='red', alpha=0.5)
+    # Show legend
+    plt.legend()
+    # Show plot
+
+    fig, axes = plt.subplots(1,3)
+    fig.set(figwidth=15)
+    fig.suptitle('Distance between centers-of-mass of residues', fontsize=18)
+
+    initial_10frames = np.mean(distances_3Darray[contact_start *100 : contact_start *100 + 10], axis=0)
+    final_10frames = np.mean(distances_3Darray[contact_finish *100 -10 :contact_finish *100], axis=0)
+
+    im0 = axes[0].pcolormesh(initial_10frames,vmin=1, vmax=dist_max, cmap = plt.cm.inferno_r)
+    im1 = axes[1].pcolormesh(final_10frames,vmin=1, vmax=dist_max, cmap = plt.cm.inferno_r)
+
+    distances_average = np.mean(distances_3Darray[contact_start *100 : contact_finish *100], axis=0)                                                 
+    im2 = axes[2].pcolormesh(distances_average,vmin=1, vmax=dist_max, cmap = plt.cm.inferno_r)
+    # plt.pcolor gives a rectangular grid by default
+    # so we need to make our heatmap square
+    for ax in axes:
+        ax.set_aspect('equal')
+        ax.set_ylabel('Residue IDs')
+        ax.set_xlabel('Residue IDs')
+    axes[0].set_title('Initial 10 frames (0.1ns)')
+    axes[1].set_title('Final 10  frames (0.1ns)')
+    axes[2].set_title(f'Average over {contact_finish - contact_start}ns')
+
+    # colorbar
+    cax,kw = mpl.colorbar.make_axes([ax for ax in axes.flat])
+    plt.colorbar(im2, cax=cax, **kw)
+
+def plot_distances_HD(distances_3Darray, contact_start, contact_finish, dist_max):
+    import matplotlib as mpl
+    fig, ax = plt.subplots()
+    fig.set(figwidth=12, figheight=10)
+
+    distances_average = np.mean(distances_3Darray[contact_start *100 : contact_finish *100], axis=0)   
+    im2 = ax.pcolormesh(distances_average,vmin=1, vmax=dist_max, cmap = plt.cm.inferno_r) 
+
+    start, end = ax.get_xlim()
+    ax.xaxis.set_ticks(np.arange(start, end, 5))
+    start, end = ax.get_ylim()
+    ax.yaxis.set_ticks(np.arange(start, end, 5))
+    ax.grid(visible = True, linestyle = '--', alpha=0.4)
+    plt.colorbar(im2)
+
 
 ## RMSD ############
 ####################
