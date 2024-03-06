@@ -235,6 +235,12 @@ def plot_distances(Rgyr, distances_3Darray, contact_start, contact_finish, dist_
         ax.set_aspect('equal')
         ax.set_ylabel('Residue IDs')
         ax.set_xlabel('Residue IDs')
+        start, end = ax.get_xlim()
+        ax.xaxis.set_ticks(np.arange(start, end, 10))
+        start, end = ax.get_ylim()
+        ax.yaxis.set_ticks(np.arange(start, end, 10))
+        ax.grid(visible = True, linestyle = '--', alpha=0.4)
+        
     axes[0].set_title('Initial 10 frames (0.1ns)')
     axes[1].set_title('Final 10  frames (0.1ns)')
     axes[2].set_title(f'Average over {contact_finish - contact_start}ns')
