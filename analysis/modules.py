@@ -7,6 +7,7 @@ import statistics
 import MDAnalysis as mda
 import pandas as pd 
 import MDAnalysis.analysis.align as align
+import math
 
 
 
@@ -30,6 +31,10 @@ def do_trajectory_CAalignement(atomistic_system, sim_path, trajectory_file_name)
 
 ## Def some plotting functions
 ##################################
+def nicey_ax(ax):
+    start, end = ax.get_ylim()
+    ax.yaxis.set_ticks(np.arange(0, end, 10))
+    ax.grid(visible = True, linestyle = '--', alpha=0.4)
 
 def plt_median(ax,array, n=1, positive=True, negative=True, label=False, inside=False):
     # plt median and +- stdev
@@ -157,13 +162,47 @@ def Rg(atomistic_system):
         factor = 10
 
     plt_smooth(ax,radius[1], radius[0],factor)
-    plt_median(ax, radius[1], label=True)
+
+    theta_Rg, expanded_Rg, collapsed_Rg = random_walk_Rgs(len(atomistic_system.residues.resids))
+    ax.axhline(y = expanded_Rg, color = 'g', linestyle = '-', alpha = 0.2, label="good solvant")
+    ax.axhline(y = theta_Rg, color = 'g', linestyle = '-', alpha = 0.5, label="theta solvant")
+    ax.axhline(y = collapsed_Rg, color = 'g', linestyle = '-', alpha = 0.2, label="bad solvant")
+    #plt_median(ax, radius[1], label=True)
     # Show legend
     plt.legend()
     # Show plot
     plt.show()
 
     return Rgyr
+
+def random_walk_Rgs(n_resids):
+    
+    typical_step_lengh = 3.6 # Angstrom
+
+    theta_Rg =  typical_step_lengh * math.sqrt(n_resids/6)
+    expanded_Rg = (typical_step_lengh * n_resids**(3/5) )/ math.sqrt(6)
+    collapsed_Rg = (typical_step_lengh * n_resids**(1/3) )/ math.sqrt(6)
+    return theta_Rg, expanded_Rg, collapsed_Rg 
+########## 
+# Simple distance between selecion center of mass
+
+def sele_distance(atomistic_system, seleA, seleB):
+
+    distances = []
+    for ts in atomistic_system.trajectory:
+        CoM_A = atomistic_system.select_atoms(seleA).center_of_mass()
+        CoM_B = atomistic_system.select_atoms(seleB).center_of_mass()
+        dist = math.sqrt((CoM_B[0] - CoM_A[0])**2 + (CoM_B[1] - CoM_A[1])**2 + (CoM_B[2] - CoM_A[2])**2)
+        distances.append([dist, atomistic_system.trajectory.time])
+
+    distances = np.array(distances).T
+    fig = plt.figure()
+    ax = fig.add_subplot()
+    fig.set(figwidth=10)
+    ax.plot(distances[1]/1000, distances[0], alpha=0.4)
+    nicey_ax(ax)
+    plt_smooth(ax,distances[0],distances[1],1000)
+    plt_median(ax,distances[0], label=True)
 
 ###############################
 ### 3D Distances plots #######
@@ -187,38 +226,8 @@ def calculate_3D_distance(atomistic_system):
     
     return distances_3Darray
 
-def plot_distances(Rgyr, distances_3Darray, contact_start, contact_finish, dist_max):
+def plot_distances_slices(distances_3Darray, contact_start, contact_finish, dist_max):
     import matplotlib as mpl
-
-    #Replot the rgyr with AOI
-    radius = np.array(Rgyr)
-    radius = radius.T
-    # Plot the data - RMSF against residue index
-    fig, ax = plt.subplots()
-    fig.set(figwidth=12)
-    ax.set_xlabel('Time (ns)')
-    ax.set_ylabel('Rg  ($\AA$)')
-
-    # Set axis limits
-    ax.set_xlim(0, len(radius.T)/100 )
-    start, end = ax.get_xlim()
-    ax.xaxis.set_ticks(np.arange(start, end, 10))
-    ax.grid(visible = True, linestyle = '--', alpha=0.4)
-
-
-    #ax.vlines(10, start, end, colors='k', linestyles='dotted')
-
-    # plt median and + 1 stdev
-    if len(radius[0]) > 1000:
-        factor = 1000
-    else:
-        factor = 10
-
-    plt_smooth(ax,radius[1], radius[0],factor)
-    plt.axvspan(contact_start, contact_finish, color='red', alpha=0.5)
-    # Show legend
-    plt.legend()
-    # Show plot
 
     fig, axes = plt.subplots(1,3)
     fig.set(figwidth=15)
@@ -252,20 +261,87 @@ def plot_distances(Rgyr, distances_3Darray, contact_start, contact_finish, dist_
     cax,kw = mpl.colorbar.make_axes([ax for ax in axes.flat])
     plt.colorbar(im2, cax=cax, **kw)
 
-def plot_distances_HD(distances_3Darray, contact_start, contact_finish, dist_max):
-    import matplotlib as mpl
-    fig, ax = plt.subplots()
-    fig.set(figwidth=12, figheight=10)
+def plot_distances_HD(Rgyr, distances_3Darray, contact_start, contact_finish, dist_max):
+    import matplotlib.gridspec as gridspec
 
-    distances_average = np.mean(distances_3Darray[contact_start *100 : contact_finish *100], axis=0)   
-    im2 = ax.pcolormesh(distances_average,vmin=1, vmax=dist_max, cmap = plt.cm.inferno_r) 
+    #Replot the rgyr with AOI
+    radius = np.array(Rgyr)
+    radius = radius.T
+    # Plot the data - RMSF against residue index
+    fig= plt.figure(constrained_layout=True)
+    spec = gridspec.GridSpec(2,1,height_ratios=[1,4], figure=fig)
+    fig.set(figwidth=10, figheight=10)
+    ax0 = fig.add_subplot(spec[0,0])
+    ax1 = fig.add_subplot(spec[1,0])
 
-    start, end = ax.get_xlim()
-    ax.xaxis.set_ticks(np.arange(start, end, 5))
-    start, end = ax.get_ylim()
-    ax.yaxis.set_ticks(np.arange(start, end, 5))
-    ax.grid(visible = True, linestyle = '--', alpha=0.4)
+
+    ax0.set_xlabel('Time (ns)')
+    ax0.set_ylabel('Rg  ($\AA$)')
+
+    # Set axis limits
+    ax0.set_xlim(0, len(radius.T)/100 )
+    start, end = ax0.get_xlim()
+    ax0.xaxis.set_ticks(np.arange(start, end, 10))
+    ax0.grid(visible = True, linestyle = '--', alpha=0.4)
+
+
+    #ax.vlines(10, start, end, colors='k', linestyles='dotted')
+
+    # plt median and + 1 stdev
+    if len(radius[0]) > 1000:
+        factor = 1000
+    else:
+        factor = 10
+
+    plt_smooth(ax0,radius[1], radius[0],factor)
+    ax0.axvspan(contact_start, contact_finish, color='red', alpha=0.5)
+
+    distances_average = np.mean(distances_3Darray[contact_start *100 : contact_finish *100], axis=0)  
+    #distances_average = np.rot90(distances_average,3) 
+    im2 = ax1.pcolormesh(distances_average,vmin=1, vmax=dist_max, cmap = plt.cm.inferno_r) 
+
+    start, end = ax1.get_xlim()
+    ax1.xaxis.set_ticks(np.arange(start, end, 5))
+    start, end = ax1.get_ylim()
+    ax1.yaxis.set_ticks(np.arange(start, end, 5))
+    ax1.grid(visible = True, linestyle = '--', alpha=0.4)
     plt.colorbar(im2)
+    plt.legend()
+
+
+def plot_every_diagonal(matrix, contact_start,contact_finish, cutoff):
+    distances_average = np.mean(matrix[contact_start *100 : contact_finish *100], axis=0)
+    diagonals = []
+
+    for i in range(0,len(distances_average[0])):
+        diagonals.append([distances_average[i,i]])
+        for j in range(1,i+1):
+            k = i-j
+            l = i+j
+            if l <= len(distances_average[0]) -1:
+                diagonals[i].append(distances_average[k,l])
+
+    conatac_source = []
+    for diag in diagonals:
+        sum = 0
+        for element in diag:
+            if element < cutoff/4:
+                sum += 4
+            elif element < cutoff/2:
+                sum += 2
+            elif element < cutoff:
+                sum += 1
+        conatac_source.append(sum)
+
+    fig = plt.figure()
+    ax = fig.add_subplot()
+    fig.set(figwidth=12)
+    ax.plot( np.arange(1, len(conatac_source)+1 ), conatac_source, )
+
+    ax.xaxis.set_ticks(np.arange(0, len(conatac_source), 5))
+    start, end = ax.get_ylim()
+    ax.yaxis.set_ticks(np.arange(start, end, 2))
+    ax.grid(visible = True, linestyle = '--', alpha=0.4)
 
 ################ Salt Bridges ###############
 #############################################
