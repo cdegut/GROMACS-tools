@@ -9,7 +9,10 @@ import pandas as pd
 import MDAnalysis.analysis.align as align
 import math
 
-
+#py dssp
+import pydssp
+import io
+from unittest.mock import mock_open, patch
 
 def do_trajectory_CAalignement(atomistic_system, sim_path, trajectory_file_name):
     
@@ -26,6 +29,63 @@ def do_trajectory_CAalignement(atomistic_system, sim_path, trajectory_file_name)
     
     print("align trajectory on the averaged one, save as " + sim_path + trajectory_file_name.split(".")[0] + "_aligned.xtc")
     aligner.run(verbose=True)
+
+
+##################################
+##### DSSP #####
+def dssp(protein):
+    fake_file = io.StringIO()
+
+    with patch("builtins.open", new_callable=mock_open, create=True) as mock_open_func:
+        protein.write(f"tmp.pdb", file_format="pdb")
+        # Get the file handle from the mock
+        handle = mock_open_func.return_value
+        # Extract the written content
+        written_content = "".join(call[1][0] for call in handle.write.mock_calls)
+        # Write the content to the fake file
+        fake_file.write(written_content)
+
+    # Reset the file pointer to the beginning
+    fake_file.seek(0)
+
+    # Read data from the fake file
+    data = fake_file.read()
+    data = data.split("\n")
+
+    backbone = []
+    for line in data:
+        try:
+            if line[13:15] in ["N ","CA", "C ", "O "]:
+                backbone.append(line)
+        except:
+            pass
+
+    last = backbone[-1][13:15]
+    if last == "O ":
+        pass
+    elif last == "C ":
+        backbone = backbone[:-3]
+    elif last == "CA ":
+        backbone = backbone[:-2]
+    elif last == "N ":
+        backbone = backbone[:-1]
+
+    backbone = "\n".join(backbone)
+    coord = np.array(pydssp.read_pdbtext(backbone))
+    dsspline = ''.join(pydssp.assign(coord))
+    
+    return dsspline
+
+###############################
+#####
+def ss_subplot(fig, ss, dsspline_str):
+    ss.axhline(y = 4, color = 'y', linestyle = '-')
+    ss.axis("off")
+    ss.grid(visible = True, linestyle = '--', alpha=0.4)
+    for i,  res in  enumerate(dsspline_str):
+        if res == "H":
+            ss.plot(i,4, color="r", marker="8", markeredgewidth= 6)
+    return ss
 
 
 
@@ -182,7 +242,26 @@ def random_walk_Rgs(n_resids):
     theta_Rg =  typical_step_lengh * math.sqrt(n_resids/6)
     expanded_Rg = (typical_step_lengh * n_resids**(3/5) )/ math.sqrt(6)
     collapsed_Rg = (typical_step_lengh * n_resids**(1/3) )/ math.sqrt(6)
-    return theta_Rg, expanded_Rg, collapsed_Rg 
+    return theta_Rg, expanded_Rg, collapsed_Rg
+
+def get_rolling_Rgs(atomistic_system, start, stop, residues_window):
+    rolling_Rgs = np.zeros((stop - start, len(atomistic_system.residues.resids) - residues_window - 1))
+
+    for k, ts in enumerate(range(start, stop)):
+        atomistic_system.trajectory[ts]
+
+        for i in range(1, len(atomistic_system.residues.resids) - residues_window):
+            start = i
+            finish = i + residues_window
+            sele =  atomistic_system.select_atoms(f"resid {start} to {finish}")
+            rolling_Rgs[k][i-1]= sele.radius_of_gyration()
+        
+
+    center_resids = np.arange(residues_window/2, len(atomistic_system.residues.resids) - residues_window/2 -1, 1)
+    rolling_Rgs_avg = np.mean(rolling_Rgs, axis = 0)
+
+    return np.column_stack((center_resids, rolling_Rgs_avg)).T
+
 ########## 
 # Simple distance between selecion center of mass
 
@@ -261,7 +340,7 @@ def plot_distances_slices(distances_3Darray, contact_start, contact_finish, dist
     cax,kw = mpl.colorbar.make_axes([ax for ax in axes.flat])
     plt.colorbar(im2, cax=cax, **kw)
 
-def plot_distances_HD(Rgyr, distances_3Darray, contact_start, contact_finish, dist_max):
+def plot_distances_HD(Rgyr, distances_3Darray, contact_start, contact_finish, dist_max, dsspline_start, do_rolling_Rgs=False, atomistic_system=None,  residues_window=10):
     import matplotlib.gridspec as gridspec
 
     #Replot the rgyr with AOI
@@ -269,7 +348,11 @@ def plot_distances_HD(Rgyr, distances_3Darray, contact_start, contact_finish, di
     radius = radius.T
     # Plot the data - RMSF against residue index
     fig= plt.figure(constrained_layout=True)
-    spec = gridspec.GridSpec(2,1,height_ratios=[1,4], figure=fig)
+    if do_rolling_Rgs:
+        spec = gridspec.GridSpec(4,1,height_ratios=[1,4,1,0.5], figure=fig)
+    else:
+        spec = gridspec.GridSpec(3,1,height_ratios=[1,4,0.5], figure=fig)
+
     fig.set(figwidth=10, figheight=10)
     ax0 = fig.add_subplot(spec[0,0])
     ax1 = fig.add_subplot(spec[1,0])
@@ -305,7 +388,21 @@ def plot_distances_HD(Rgyr, distances_3Darray, contact_start, contact_finish, di
     start, end = ax1.get_ylim()
     ax1.yaxis.set_ticks(np.arange(start, end, 5))
     ax1.grid(visible = True, linestyle = '--', alpha=0.4)
+
     plt.colorbar(im2)
+
+    if do_rolling_Rgs:
+        ax2 = fig.add_subplot(spec[2,0], sharex=ax1)
+        rolling_Rgs = get_rolling_Rgs(atomistic_system, contact_start*100, contact_finish*100, residues_window)
+
+        n_resids =  len(atomistic_system.residues.resids)
+        ax2.xaxis.set_ticks(np.arange(0,n_resids , 5))
+        ax2.grid(visible = True, linestyle = '--', alpha=0.4)
+        ax2.plot(rolling_Rgs[0], rolling_Rgs[1])
+    
+    ss = fig.add_subplot(spec[-1,0], sharex=ax1)
+    ss_subplot(fig, ss, dsspline_start)
+
     plt.legend()
 
 
