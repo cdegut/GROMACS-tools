@@ -224,9 +224,9 @@ def Rg(atomistic_system):
     plt_smooth(ax,radius[1], radius[0],factor)
 
     theta_Rg, expanded_Rg, collapsed_Rg = random_walk_Rgs(len(atomistic_system.residues.resids))
-    ax.axhline(y = expanded_Rg, color = 'g', linestyle = '-', alpha = 0.2, label="good solvant")
-    ax.axhline(y = theta_Rg, color = 'g', linestyle = '-', alpha = 0.5, label="theta solvant")
-    ax.axhline(y = collapsed_Rg, color = 'g', linestyle = '-', alpha = 0.2, label="bad solvant")
+    ax.axhline(y = expanded_Rg, color = 'g', linestyle = '-', alpha = 0.2, label="good Solvent")
+    ax.axhline(y = theta_Rg, color = 'g', linestyle = '-', alpha = 0.5, label="theta Solvent")
+    ax.axhline(y = collapsed_Rg, color = 'g', linestyle = '-', alpha = 0.2, label="bad Solvent")
     #plt_median(ax, radius[1], label=True)
     # Show legend
     plt.legend()
@@ -265,7 +265,7 @@ def get_rolling_Rgs(atomistic_system, start, stop, residues_window):
 ########## 
 # Simple distance between selecion center of mass
 
-def sele_distance(atomistic_system, seleA, seleB):
+def sele_distance(atomistic_system, seleA, seleB, random_walk_step):
 
     distances = []
     for ts in atomistic_system.trajectory:
@@ -281,7 +281,12 @@ def sele_distance(atomistic_system, seleA, seleB):
     ax.plot(distances[1]/1000, distances[0], alpha=0.4)
     nicey_ax(ax)
     plt_smooth(ax,distances[0],distances[1],1000)
-    plt_median(ax,distances[0], label=True)
+
+    theta_Rg, expanded_Rg, collapsed_Rg = random_walk_Rgs(random_walk_step)
+    ax.axhline(y = expanded_Rg, color = 'g', linestyle = '-', alpha = 0.2, label="good Solvent")
+    ax.axhline(y = theta_Rg, color = 'g', linestyle = '-', alpha = 0.5, label="theta Solvent")
+    ax.axhline(y = collapsed_Rg, color = 'g', linestyle = '-', alpha = 0.2, label="bad Solvent")
+    #plt_median(ax,distances[0], label=True)
 
 ###############################
 ### 3D Distances plots #######
