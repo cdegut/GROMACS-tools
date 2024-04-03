@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from .old_modules import plt_smooth, ss_subplot
+from .plot import plt_smooth, ss_subplot
 import math
 
 ### RG ##########
