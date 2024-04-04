@@ -21,7 +21,7 @@ def Rg(atomistic_system):
     ax.plot(radius[0]/1000, radius[1], label='Rg', alpha = 0.4)
     # Add axis labels
     ax.set_xlabel('Time (ns)')
-    ax.set_ylabel('Rg  ($\AA$)')
+    ax.set_ylabel(r'Rg  ($\AA$)')
 
     # Set axis limits
     ax.set_xlim(0, len(radius.T)/100 )
@@ -152,7 +152,7 @@ def plot_distances_HD(Rgyr, distances_3Darray, contact_start, contact_finish, di
 
 
     ax0.set_xlabel('Time (ns)')
-    ax0.set_ylabel('Rg  ($\AA$)')
+    ax0.set_ylabel(r'Rg  ($\AA$)')
 
     # Set axis limits
     ax0.set_xlim(0, len(radius.T)/100 )
@@ -254,4 +254,7 @@ def sele_distance(atomistic_system, seleA, seleB, random_walk_step):
     ax.axhline(y = expanded_Rg, color = 'g', linestyle = '-', alpha = 0.2, label="good Solvent")
     ax.axhline(y = theta_Rg, color = 'g', linestyle = '-', alpha = 0.5, label="theta Solvent")
     ax.axhline(y = collapsed_Rg, color = 'g', linestyle = '-', alpha = 0.2, label="bad Solvent")
+    ax.set_xlabel('Time (ns)')
+    ax.set_ylabel(r'Rg  ($\AA$)')
+
     #plt_median(ax,distances[0], label=True)
