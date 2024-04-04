@@ -51,7 +51,7 @@ def plt_smooth(ax,data_array,time_array,window):
     ax.plot(time_array[slice_start:-slice_finish]/1000, avg, label= str(window) + "ps avg")
 
 
-def edr_plot(energy_like_terms, ax1, data_label, unit=False, divide=False, edr_only = False):
+def edr_plot(energy_like_terms, ax1, data_label, unit=False, divide=False):
     #get data
     edr_data = energy_like_terms.get_data(data_label)
     
@@ -79,8 +79,7 @@ def edr_plot(energy_like_terms, ax1, data_label, unit=False, divide=False, edr_o
 
     # Set axis limits
     ax1.set_ylim(median - 5 * stdev, median + 5 * stdev)
-    if not edr_only:
-        ax1.set_xlim(0, len(edr_data['Time'])/100)  
+    ax1.set_xlim(0, len(edr_data['Time'])/100)  
 
 
 def box_plot(energy_like_terms):

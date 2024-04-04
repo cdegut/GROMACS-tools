@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from .plot import plt_smooth, ss_subplot
+from .plot import plt_smooth, ss_subplot, nicey_ax
 import math
 
 ### RG ##########
@@ -232,3 +232,26 @@ def plot_every_diagonal(matrix, contact_start,contact_finish, cutoff):
     start, end = ax.get_ylim()
     ax.yaxis.set_ticks(np.arange(start, end, 2))
     ax.grid(visible = True, linestyle = '--', alpha=0.4)
+
+def sele_distance(atomistic_system, seleA, seleB, random_walk_step):
+
+    distances = []
+    for ts in atomistic_system.trajectory:
+        CoM_A = atomistic_system.select_atoms(seleA).center_of_mass()
+        CoM_B = atomistic_system.select_atoms(seleB).center_of_mass()
+        dist = math.sqrt((CoM_B[0] - CoM_A[0])**2 + (CoM_B[1] - CoM_A[1])**2 + (CoM_B[2] - CoM_A[2])**2)
+        distances.append([dist, atomistic_system.trajectory.time])
+
+    distances = np.array(distances).T
+    fig = plt.figure()
+    ax = fig.add_subplot()
+    fig.set(figwidth=10)
+    ax.plot(distances[1]/1000, distances[0], alpha=0.4)
+    nicey_ax(ax)
+    plt_smooth(ax,distances[0],distances[1],1000)
+
+    theta_Rg, expanded_Rg, collapsed_Rg = random_walk_Rgs(random_walk_step)
+    ax.axhline(y = expanded_Rg, color = 'g', linestyle = '-', alpha = 0.2, label="good Solvent")
+    ax.axhline(y = theta_Rg, color = 'g', linestyle = '-', alpha = 0.5, label="theta Solvent")
+    ax.axhline(y = collapsed_Rg, color = 'g', linestyle = '-', alpha = 0.2, label="bad Solvent")
+    #plt_median(ax,distances[0], label=True)
