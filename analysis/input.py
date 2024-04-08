@@ -5,8 +5,9 @@ import os
 import modules.input
 
 ### Needed input
-#sim_path = "S:\\Work\\gromacs\\Cr2RBM-2\\"
-sim_path = "D:\\MD\\Cr2RBM-2\\"
+#sim_path = "S:\\Work\\gromacs\\Cr_mutants\\APAx2\\"
+sim_path = "S:\\Work\\gromacs\\Cr2RBM-2\\"
+#sim_path = "D:\\MD\\Cr2RBM-2\\"
 ligand_name = None #set to None if no ligand
 coordinate_file_name = 'md250ns_po_start.pdb'             ##pdb / gro
 trajectory_file_name = 'md250ns_center_po.xtc'      ##xtc file
@@ -52,3 +53,18 @@ def align_traj(is_aligned):
     else:
         print(f"Trajectory allready aligned, delete {trajectory_file_name.split('.')[0] + '_aligned.xtc'} to rerun alignement")
     return is_aligned
+
+def get_fasta(atomistic_system: mda.Universe):
+    fasta = ""
+    for i, residue in enumerate(atomistic_system.residues.resnames):
+        fasta = fasta + mda.lib.util.convert_aa_code(atomistic_system.residues.resnames[i])
+    return fasta
+
+def get_number_line(fasta):
+    number_line = ""
+    for i in range(0,len(fasta),5):
+        i = str(i)
+        space = "-" * (5 - len(i))
+        number_line = number_line + i + space
+    number_line = number_line[1:len(fasta)+1]
+    return number_line

@@ -5,12 +5,17 @@ import numpy as np
 ###############################
 #####
 def ss_subplot(fig, ss, dsspline_str):
-    ss.axhline(y = 4, color = 'y', linestyle = '-')
+    ss.axhline(y = 4, color = 'y', linestyle = '-', label="Random Coil")
     ss.axis("off")
     ss.grid(visible = True, linestyle = '--', alpha=0.4)
+    legend_helix = False
     for i,  res in  enumerate(dsspline_str):
         if res == "H":
-            ss.plot(i,4, color="r", marker="8", markeredgewidth= 6)
+            if not legend_helix:
+                ss.plot(i,4, color="r", marker="8", markeredgewidth= 6, label="Alpha helix")
+                legend_helix = True
+            else:
+                ss.plot(i,4, color="r", marker="8", markeredgewidth= 6)
     return ss
 
 

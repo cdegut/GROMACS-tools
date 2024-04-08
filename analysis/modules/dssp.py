@@ -3,6 +3,8 @@ import pydssp
 from unittest.mock import mock_open, patch
 import io
 import warnings
+import MDAnalysis as mda
+import matplotlib.pyplot as plt
 import os
 
 ##################################
@@ -54,3 +56,40 @@ def dssp(protein):
     if add_last:
         dsspline = f"{dsspline}-"
     return dsspline
+
+
+
+def plot_dssp_simulation(atomistic_system: mda.Universe, step):
+
+    helix_matrix = np.zeros((int(len(atomistic_system.trajectory)/step)+1, int(len(atomistic_system.residues))), np.float16)
+    beta_matrix = np.zeros((int(len(atomistic_system.trajectory)/step)+1, int(len(atomistic_system.residues))), np.float16)
+
+    protein = atomistic_system.select_atoms("protein")
+
+    for  i, ts in enumerate(range(0, len(atomistic_system.trajectory), step)):
+        atomistic_system.trajectory[ts]
+        line = dssp(protein)
+        helix_value = line.replace("-", "0").replace("H","1").replace("E", "0")
+        alpha_as_array = np.array([float(x) for x in helix_value])
+        beta_value = line.replace("-", "0").replace("H","0").replace("E", "1")
+        beta_as_array = np.array([float(x) for x in beta_value])
+        helix_matrix[i] = alpha_as_array
+        beta_matrix[i] = beta_as_array
+
+    fig= plt.figure(constrained_layout=True)
+    fig.set(figwidth=8, figheight=3)
+    bar_plot = fig.add_subplot()
+    x = np.arange(1,len(atomistic_system.residues)+1, 1)
+
+    bar_plot.bar(x, helix_matrix.mean(0), color="r", alpha = 0.7, label = "alpha conformation")
+    bar_plot.bar(x, beta_matrix.mean(0), color="y", alpha = 0.7, label = "beta conformation")
+
+    bar_plot.set_xlim(1, len(atomistic_system.residues))
+    start, end = bar_plot.get_xlim()
+    bar_plot.xaxis.set_ticks(np.arange(start-1, end, 5))
+
+    bar_plot.set_xlabel('Residues')
+    bar_plot.set_ylabel('Fraction of time in Alpha conformation')
+
+    bar_plot.legend()
+    plt.show()

@@ -1,7 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 from .plot import plt_smooth, ss_subplot, nicey_ax
 import math
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
 ### RG ##########
 #################
@@ -49,13 +51,20 @@ def Rg(atomistic_system):
 
     return Rgyr
 
-def random_walk_Rgs(n_resids):
+def random_walk_Rgs(n_resids, Khun_lenght=False):
     
-    typical_step_lengh = 3.6 # Angstrom
+    typical_amino_acid = 3.6 # Angstrom
+    #Khun_lenght = 8.8 # Angstrom
 
-    theta_Rg =  typical_step_lengh * math.sqrt(n_resids/6)
-    expanded_Rg = (typical_step_lengh * n_resids**(3/5) )/ math.sqrt(6)
-    collapsed_Rg = (typical_step_lengh * n_resids**(1/3) )/ math.sqrt(6)
+    theta_Rg =  typical_amino_acid * math.sqrt(n_resids/6)
+    expanded_Rg = (typical_amino_acid * n_resids**(3/5) )/ math.sqrt(6)
+    collapsed_Rg = (typical_amino_acid * n_resids**(1/3) )/ math.sqrt(6)
+
+    if Khun_lenght:
+        theta_Rg = math.sqrt((Khun_lenght / typical_amino_acid)) * theta_Rg 
+        expanded_Rg = ((Khun_lenght / typical_amino_acid)**(1-3/5)) * expanded_Rg
+        collapsed_Rg = ((Khun_lenght / typical_amino_acid)**(1-1/3)) * collapsed_Rg
+
     return theta_Rg, expanded_Rg, collapsed_Rg
 
 def get_rolling_Rgs(atomistic_system, start, stop, residues_window):
@@ -133,70 +142,92 @@ def plot_distances_slices(distances_3Darray, contact_start, contact_finish, dist
     cax,kw = mpl.colorbar.make_axes([ax for ax in axes.flat])
     plt.colorbar(im2, cax=cax, **kw)
 
-def plot_distances_HD(Rgyr, distances_3Darray, contact_start, contact_finish, dist_max, dsspline_start, do_rolling_Rgs=False, atomistic_system=None,  residues_window=10):
-    import matplotlib.gridspec as gridspec
+def plot_distances_HD(Rgyr,  distances_3Darray, contact_start, contact_finish, dist_max, dsspline_start, Rg_start = 0,
+                      do_rolling_Rgs=False, Khun_lengh=False, residues_window=10,
+                      atomistic_system=None):
 
+    n_resids =  len(atomistic_system.residues.resids)
     #Replot the rgyr with AOI
     radius = np.array(Rgyr)
+    if Rg_start != 0:
+        radius = radius[Rg_start*100:]
     radius = radius.T
-    # Plot the data - RMSF against residue index
+    theta_Rg, expanded_Rg, collapsed_Rg = random_walk_Rgs(n_resids)
+    
     fig= plt.figure(constrained_layout=True)
     if do_rolling_Rgs:
-        spec = gridspec.GridSpec(4,1,height_ratios=[1,4,1,0.5], figure=fig)
+        spec = gridspec.GridSpec(4,1,height_ratios=[1,4,1,0.5] ,figure=fig)
     else:
         spec = gridspec.GridSpec(3,1,height_ratios=[1,4,0.5], figure=fig)
 
     fig.set(figwidth=10, figheight=10)
     ax0 = fig.add_subplot(spec[0,0])
-    ax1 = fig.add_subplot(spec[1,0])
-
 
     ax0.set_xlabel('Time (ns)')
     ax0.set_ylabel(r'Rg  ($\AA$)')
 
-    # Set axis limits
-    ax0.set_xlim(0, len(radius.T)/100 )
+    ax0.set_xlim(Rg_start, len(radius.T)/100 +  Rg_start)
+
     start, end = ax0.get_xlim()
     ax0.xaxis.set_ticks(np.arange(start, end, 10))
+
     ax0.grid(visible = True, linestyle = '--', alpha=0.4)
 
 
-    #ax.vlines(10, start, end, colors='k', linestyles='dotted')
-
-    # plt median and + 1 stdev
     if len(radius[0]) > 1000:
         factor = 1000
     else:
         factor = 10
-
     plt_smooth(ax0,radius[1], radius[0],factor)
-    ax0.axvspan(contact_start, contact_finish, color='red', alpha=0.5)
 
+    ax0.axhline(y = expanded_Rg, color = 'g', linestyle = '-', alpha = 0.2, label="good solvent")
+    ax0.axhline(y = theta_Rg, color = 'g', linestyle = '-', alpha = 0.4, label="theta solvent")
+    ax0.axhline(y = collapsed_Rg, color = 'g', linestyle = '-', alpha = 0.2, label="bad solvent")
+    ax0.axvspan(contact_start, contact_finish, color='red', alpha=0.3, label="Selected timeframe")
+    ax0.legend(loc=(1.01, 0.1))
+
+    ####### plot colormesh
+    ax1 = fig.add_subplot(spec[1,0])
     distances_average = np.mean(distances_3Darray[contact_start *100 : contact_finish *100], axis=0)  
-    #distances_average = np.rot90(distances_average,3) 
     im2 = ax1.pcolormesh(distances_average,vmin=1, vmax=dist_max, cmap = plt.cm.inferno_r) 
-
     start, end = ax1.get_xlim()
     ax1.xaxis.set_ticks(np.arange(start, end, 5))
     start, end = ax1.get_ylim()
     ax1.yaxis.set_ticks(np.arange(start, end, 5))
     ax1.grid(visible = True, linestyle = '--', alpha=0.4)
 
-    plt.colorbar(im2)
+    axins = inset_axes(ax1,width="5%", height="50%",  loc='center left', bbox_to_anchor=(1.05, 0., 1, 1), bbox_transform=ax1.transAxes, borderpad=0) 
+    fig.colorbar(im2, cax = axins, ax=ax1, label="CoM to CoM distance  ($\\AA$)")
 
+
+    ######## plotrolling Rg
     if do_rolling_Rgs:
         ax2 = fig.add_subplot(spec[2,0], sharex=ax1)
-        rolling_Rgs = get_rolling_Rgs(atomistic_system, contact_start*100, contact_finish*100, residues_window)
+        ax2.set_ylabel(r'Rg  ($\AA$)')
+        ax2.set_xlabel(f"Center of {residues_window} residues window")
+        rolling_Rgs = get_rolling_Rgs(atomistic_system, contact_start*100, contact_finish*100, residues_window,)
 
-        n_resids =  len(atomistic_system.residues.resids)
         ax2.xaxis.set_ticks(np.arange(0,n_resids , 5))
         ax2.grid(visible = True, linestyle = '--', alpha=0.4)
         ax2.plot(rolling_Rgs[0], rolling_Rgs[1])
+
+        theta_Rg, expanded_Rg, collapsed_Rg = random_walk_Rgs(residues_window, Khun_lengh)
+        #ax2.scatter([],[], alpha=0,  label=f"With lK ={Khun_lengh}$\\AA$:") ## fake scatter to add a legend handle
+        ax2.axhline(y = expanded_Rg, color = 'g', linestyle = '-', alpha = 0.2, label="good solvent")
+        ax2.axhline(y = theta_Rg, color = 'g', linestyle = '-', alpha = 0.5, label="theta solvent")
+        #ax2.axhline(y = collapsed_Rg, color = 'g', linestyle = '-', alpha = 0.2, label="bad solvent") # not applicable 
+        ax2.legend(loc=(1.01, 0.1), title= f"With lK ={Khun_lengh}$\\AA$:")
     
     ss = fig.add_subplot(spec[-1,0], sharex=ax1)
     ss_subplot(fig, ss, dsspline_start)
+    ss.legend(loc=(1.01, 0.2))
 
-    plt.legend()
+    
+    ax0.set_title("Protein Rg during simulation", loc='left')
+    ax1.set_title("Residues to residues distance matrix", loc='left')
+    ax2.set_title("Rolling Rgs", loc='left')
+    ss.set_title("Secondary structure", loc='left')
+
 
 
 def plot_every_diagonal(matrix, contact_start,contact_finish, cutoff):
@@ -233,7 +264,7 @@ def plot_every_diagonal(matrix, contact_start,contact_finish, cutoff):
     ax.yaxis.set_ticks(np.arange(start, end, 2))
     ax.grid(visible = True, linestyle = '--', alpha=0.4)
 
-def sele_distance(atomistic_system, seleA, seleB, random_walk_step):
+def sele_distance(atomistic_system, seleA, seleB, random_walk_step, Khun_lengh):
 
     distances = []
     for ts in atomistic_system.trajectory:
@@ -250,10 +281,10 @@ def sele_distance(atomistic_system, seleA, seleB, random_walk_step):
     nicey_ax(ax)
     plt_smooth(ax,distances[0],distances[1],1000)
 
-    theta_Rg, expanded_Rg, collapsed_Rg = random_walk_Rgs(random_walk_step)
+    theta_Rg, expanded_Rg, collapsed_Rg = random_walk_Rgs(random_walk_step, Khun_lengh)
     ax.axhline(y = expanded_Rg, color = 'g', linestyle = '-', alpha = 0.2, label="good Solvent")
     ax.axhline(y = theta_Rg, color = 'g', linestyle = '-', alpha = 0.5, label="theta Solvent")
-    ax.axhline(y = collapsed_Rg, color = 'g', linestyle = '-', alpha = 0.2, label="bad Solvent")
+    #ax.axhline(y = collapsed_Rg, color = 'g', linestyle = '-', alpha = 0.2, label="bad Solvent")
     ax.set_xlabel('Time (ns)')
     ax.set_ylabel(r'Rg  ($\AA$)')
 
