@@ -1,3 +1,4 @@
+mdp_files_folder=/local_scratch/clement/gromacs/GROMACS-tools/mdpfiles
 ##Run minimization
 gmx grompp -f  $mdp_files_folder/minim.mdp -c struct_box_water_ions.gro -p topol.top -o em.tpr
 gmx mdrun -v -deffnm em
@@ -12,13 +13,13 @@ gmx grompp -f  $mdp_files_folder/md1ns.mdp -c npt.gro -t npt.cpt -p topol.top -o
 gmx mdrun -pme gpu -v -deffnm md1ns
 
 ##cleanup
-mkdir run_prep
-mv em* run_prep/
-mv nvt* run_prep/
-mv npt* run_prep/
-mv ions.tpr run_prep/
-mv struct_* run_prep/
-mv starting_structure.gro run_prep/.
-mv posre.itp run_prep/.
-mv *.log run_prep/.
-mv *#* run_prep/.
+mkdir pre_run
+mv em* pre_run/
+mv nvt* pre_run/
+mv npt* pre_run/
+mv ions.tpr pre_run/
+mv struct_* pre_run/
+mv starting_structure.gro pre_run/.
+mv posre.itp pre_run/.
+mv *.log pre_run/.
+mv *#* pre_run/.

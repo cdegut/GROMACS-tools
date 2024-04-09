@@ -19,10 +19,8 @@ def Rg(atomistic_system):
 
     radius = np.array(Rgyr)
     radius = radius.T
-    # Plot the data - RMSF against residue index
 
     ax.plot(radius[0]/1000, radius[1], label='Rg', alpha = 0.4)
-    # Add axis labels
     ax.set_xlabel('Time (ns)')
     ax.set_ylabel(r'Rg  ($\AA$)')
 
@@ -44,7 +42,6 @@ def Rg(atomistic_system):
     ax.text(x=1.03, y=0.55, ha="left", va="top", s=f"Rg last ns: \n{rg_average:.3}$\\AA$", transform = ax.transAxes) 
     #plt_median(ax, radius[1], label=True)
 
-    # Set axis limits
     ax.set_xlim(0, len(radius.T)/100 )
     start, end = ax.get_xlim()
     ax.xaxis.set_ticks(np.arange(start, end, 10))
@@ -55,9 +52,7 @@ def Rg(atomistic_system):
 
     ax.grid(visible = True, linestyle = '--', alpha=0.4)
 
-    # Show legend
     plt.legend(loc=(1.01, 0.6))
-    # Show plot
     plt.show()
 
     return Rgyr
