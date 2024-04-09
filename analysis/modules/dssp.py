@@ -5,8 +5,11 @@ import io
 import warnings
 import MDAnalysis as mda
 import matplotlib.pyplot as plt
+from typing import Tuple, Union
+
 import os
 
+#MARK: test
 ##################################
 ##### DSSP #####
 def dssp(protein):
@@ -58,15 +61,26 @@ def dssp(protein):
     return dsspline
 
 
+#MARK: plot_dssp
 
-def plot_dssp_simulation(atomistic_system: mda.Universe, step):
-
-    helix_matrix = np.zeros((int(len(atomistic_system.trajectory)/step)+1, int(len(atomistic_system.residues))), np.float16)
-    beta_matrix = np.zeros((int(len(atomistic_system.trajectory)/step)+1, int(len(atomistic_system.residues))), np.float16)
+def calc_dssp_matrix(atomistic_system: mda.Universe, step, start = None, stop = None ):
 
     protein = atomistic_system.select_atoms("protein")
 
-    for  i, ts in enumerate(range(0, len(atomistic_system.trajectory), step)):
+    if start is None:
+        start = 0
+    else:
+        start = start * 100
+    if stop is None:
+        stop = len(atomistic_system.trajectory)
+    else:
+        stop = stop*100
+
+
+    helix_matrix = np.zeros((int((stop - start)/step)+1, int(len(atomistic_system.residues))), np.float16)
+    beta_matrix = np.zeros((int((stop - start)/step)+1, int(len(atomistic_system.residues))), np.float16)
+
+    for  i, ts in enumerate(range(start, stop, step)):
         atomistic_system.trajectory[ts]
         line = dssp(protein)
         helix_value = line.replace("-", "0").replace("H","1").replace("E", "0")
@@ -75,21 +89,23 @@ def plot_dssp_simulation(atomistic_system: mda.Universe, step):
         beta_as_array = np.array([float(x) for x in beta_value])
         helix_matrix[i] = alpha_as_array
         beta_matrix[i] = beta_as_array
+    return helix_matrix, beta_matrix
 
+
+def plot_dssp_average(atomistic_system: mda.Universe, helix_matrix, beta_matrix) -> Tuple[plt.Figure, plt.Axes]:
     fig= plt.figure(constrained_layout=True)
     fig.set(figwidth=8, figheight=3)
     bar_plot = fig.add_subplot()
     x = np.arange(1,len(atomistic_system.residues)+1, 1)
 
-    bar_plot.bar(x, helix_matrix.mean(0), color="r", alpha = 0.7, label = "alpha conformation")
-    bar_plot.bar(x, beta_matrix.mean(0), color="y", alpha = 0.7, label = "beta conformation")
+    bar_plot.bar(x, helix_matrix.mean(0), color="crimson", alpha = 0.7, label = "Alpha conf")
+    bar_plot.bar(x, beta_matrix.mean(0), color="yellowgreen", alpha = 0.7, label = "Beta conf")
 
     bar_plot.set_xlim(1, len(atomistic_system.residues))
     start, end = bar_plot.get_xlim()
     bar_plot.xaxis.set_ticks(np.arange(start-1, end, 5))
 
     bar_plot.set_xlabel('Residues')
-    bar_plot.set_ylabel('Fraction of time in Alpha conformation')
+    bar_plot.set_ylabel('Fraction of time in conformation')
 
-    bar_plot.legend()
-    plt.show()
+    return fig, bar_plot

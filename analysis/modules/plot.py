@@ -4,20 +4,46 @@ import numpy as np
 
 ###############################
 #####
-def ss_subplot(fig, ss, dsspline_str):
+def ss_subplot(fig, ss: plt.Axes, dsspline_str) -> plt.Axes:
     ss.axhline(y = 4, color = 'y', linestyle = '-', label="Random Coil")
     ss.axis("off")
     ss.grid(visible = True, linestyle = '--', alpha=0.4)
-    legend_helix = False
+
+    alpha_markers = []
+    beta_markers = []
+
     for i,  res in  enumerate(dsspline_str):
         if res == "H":
-            if not legend_helix:
-                ss.plot(i,4, color="r", marker="8", markeredgewidth= 6, label="Alpha helix")
-                legend_helix = True
-            else:
-                ss.plot(i,4, color="r", marker="8", markeredgewidth= 6)
+            alpha_markers.append(i)
+        if res == "E":
+            beta_markers.append(i)
+
+    alpha_markers = find_consecutive_numbers(alpha_markers, 3)
+    beta_markers = find_consecutive_numbers(beta_markers, 4)
+    ss.scatter(alpha_markers,[4 for x in alpha_markers], 
+               zorder=10, color="r", marker="8", linewidths=8, label="Alpha helix (>3)")
+    ss.scatter(beta_markers,[4 for x in beta_markers], 
+               zorder=9, color="limegreen", marker=">", linewidths=5, label="Beta Strand (>4)")
+    
     return ss
 
+def find_consecutive_numbers(numbers, lenght):
+    consecutive_numbers = []
+    current_series = []
+
+    for num in numbers:
+        if not current_series or num == current_series[-1] + 1:
+            current_series.append(num)
+        else:
+            if len(current_series) >= 4:
+                consecutive_numbers.extend(current_series)
+            current_series = [num]
+
+    # Check if the last series is also consecutive
+    if len(current_series) >= lenght:
+        consecutive_numbers.extend(current_series)
+
+    return consecutive_numbers
 
 
 ## Def some plotting functions
