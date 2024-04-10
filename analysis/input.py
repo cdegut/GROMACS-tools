@@ -6,9 +6,9 @@ import modules.input
 
 
 ### Needed input
-sim_path = "S:\\Work\\gromacs\\Cr_mutants\\WT\\tmp"
+#sim_path = "S:\\Work\\gromacs\\Cr_mutants\\WT\\tmp"
 ##sim_path = "S:\\Work\\gromacs\\Cr2RBM-2\\"
-#sim_path = "D:\\MD\\Cr2RBM-2\\"
+sim_path = "D:\\MD\\Cr2RBM-2\\"
 ligand_name = None #set to None if no ligand
 coordinate_file_name = 'md250ns_po_start.pdb'             ##pdb / gro
 trajectory_file_name = 'md250ns_center_po.xtc'      ##xtc file
