@@ -3,6 +3,11 @@ from copy import deepcopy
 import subprocess
 import os
 
+nvt_param = deepcopy(default_parameter.nvt)
+npt_param = deepcopy(default_parameter.nvt)
+md_param = deepcopy(default_parameter.md)
+minim_param = deepcopy(default_parameter.minim)
+
 def read_mdp(mdp_file_name: str) ->dict:
     mdp_dict = {}
     with open(mdp_file_name, 'r') as mdp_file:
@@ -99,12 +104,15 @@ def make_runsh(md_name: str):
     f"gmx grompp -f  {md_name}.mdp -c npt.gro -t npt.cpt -p topol.top -o {md_name}.tpr",
     f"gmx mdrun -pme gpu -v -deffnm {md_name}",
     "mv npt* pre_run/",
+    "## generate light protein only files for analysis"
+    f"echo \"1 1\" | gmx trjconv -s {md_name}.tpr -f {md_name}.xtc -o {md_name}_center_po.xtc -center -pbc mol -ur compact",
+    f"echo \"1\" | gmx trjconv -s {md_name}.tpr -f {md_name}_center_po.xtc -o {md_name}_po_start.pdb -dump 0",
     ]
 
-    with open("run.sh", 'w') as file:
+    with open(f"run_{md_name}.sh", 'w') as file:
         for command in commands_list:
             file.write(f"{command}\n")
-    subprocess.run(f"chmod +x run.sh", shell=True)    
+    subprocess.run(f"chmod +x run_{md_name}.sh", shell=True)    
 
 
 def prep_run():
@@ -115,12 +123,6 @@ def prep_run():
     else:
         selected_file = select_file(pdb_files)
         print(f"You have selected: {selected_file}")
-
-    nvt_param = deepcopy(default_parameter.nvt)
-    npt_param = deepcopy(default_parameter.nvt)
-    md_param = deepcopy(default_parameter.md)
-    minim_param = deepcopy(default_parameter.minim)
-
 
     set_duration(md_param, 250)
     set_temperature(md_param, 300)
@@ -148,8 +150,8 @@ def prep_run():
     md_name =  f"md{int(duration)}ns"
     make_runsh(md_name)
 
-    if os.path.isfile("run.sh"):
-        print("run.sh file created, ready to run")
+    if os.path.isfile(f"run_{md_name}.sh"):
+        print(f"run_{md_name}.sh file created, ready to execute")
     
     
 
