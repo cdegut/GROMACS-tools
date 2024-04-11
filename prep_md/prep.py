@@ -1,5 +1,4 @@
 import default_parameter
-from pprint import pp
 from copy import deepcopy
 import subprocess
 import os
@@ -76,10 +75,39 @@ def select_file(pdb_files):
         except ValueError:
             print("Invalid input. Please enter a number.")
 
+def make_runsh(md_name: str):
+    commands_list = [
+    "gmx grompp -f  minim.mdp -c struct_box_water_ions.gro -p topol.top -o em.tpr",
+    "gmx mdrun -v -deffnm em",
+    "##Run NVT equilibration",
+    "gmx grompp -f  nvt.mdp -c em.gro -r em.gro -p topol.top -o nvt.tpr",
+    "gmx mdrun -v -deffnm nvt",
+    "##Run NPT equilibration",
+    "gmx grompp -f  npt.mdp -c nvt.gro -r nvt.gro -t nvt.cpt -p topol.top -o npt.tpr",
+    "gmx mdrun -v -deffnm npt",
+    "##cleanup",
+    "mkdir pre_run",
+    "mv em* pre_run/",
+    "mv nvt* pre_run/",
+    "mv ions.tpr pre_run/",
+    "mv struct_* pre_run/",
+    "mv starting_structure.gro pre_run/.",
+    "mv posre.itp pre_run/.",
+    "mv *.log pre_run/.",
+    "mv *#* pre_run/.",
+    "##Run proper simulation",
+    f"gmx grompp -f  {md_name}.mdp -c npt.gro -t npt.cpt -p topol.top -o {md_name}.tpr",
+    f"gmx mdrun -pme gpu -v -deffnm {md_name}",
+    "mv npt* pre_run/",
+    ]
+
+    with open("run.sh", 'w') as file:
+        for command in commands_list:
+            file.write(f"{command}\n")
+    subprocess.run(f"chmod +x run.sh", shell=True)    
 
 
-
-def main():
+def prep_run():
     pdb_files = list_txt_files()
     if not pdb_files :
         print("No .pdb files found in the current directory.")
@@ -117,5 +145,13 @@ def main():
     for command in commands:
         subprocess.run(command, shell=True)
 
+    md_name =  f"md{int(duration)}ns"
+    make_runsh(md_name)
+
+    if os.path.isfile("run.sh"):
+        print("run.sh file created, ready to run")
+    
+    
+
 if __name__ == "__main__":
-    main()
+    prep_run()
