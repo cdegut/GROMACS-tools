@@ -104,7 +104,7 @@ def make_runsh(md_name: str):
     f"gmx grompp -f  {md_name}.mdp -c npt.gro -t npt.cpt -p topol.top -o {md_name}.tpr",
     f"gmx mdrun -pme gpu -v -deffnm {md_name}",
     "mv npt* pre_run/",
-    "## generate light protein only files for analysis"
+    "## generate light protein only files for analysis",
     f"echo \"1 1\" | gmx trjconv -s {md_name}.tpr -f {md_name}.xtc -o {md_name}_center_po.xtc -center -pbc mol -ur compact",
     f"echo \"1\" | gmx trjconv -s {md_name}.tpr -f {md_name}_center_po.xtc -o {md_name}_po_start.pdb -dump 0",
     ]
