@@ -114,6 +114,24 @@ def make_runsh(md_name: str):
             file.write(f"{command}\n")
     subprocess.run(f"chmod +x run_{md_name}.sh", shell=True)    
 
+def select_water_model():
+    model_list = ["spc216", "tip4p",  "tip5p"]
+    water_model = 0
+    while int(water_model) not in [1,2,3]:
+        water_model = input(f"Choose 1,2 o r3:\nFill box with:\n1: spc216 (default gromos)\n2: tip4p 216 (default opls)\n3: tip5p216\n").strip() or 2
+
+    return model_list[int(water_model)-1]
+
+def run_commands_list(commands):
+
+    for command in commands:
+        cmd = subprocess.run(command, shell=True)
+        if cmd.returncode != 0:
+            status = False
+            print(f"Last command exit code {cmd.returncode}")
+            return False
+        
+    return True
 
 def prep_run():
     pdb_files = list_txt_files()
@@ -128,31 +146,40 @@ def prep_run():
     set_temperature(md_param, 300)
     copy_temperature(md_param, [nvt_param, npt_param])
 
+    ions = input(f"Salt concentration in M\n").strip() or 0
 
+    box = [f'gmx pdb2gmx -ignh -f {selected_file} -o starting_structure.gro',
+    "gmx editconf -f starting_structure.gro -o struct_new_box -c -d 1.0 -bt dodecahedron"]
+
+    box_run = run_commands_list(box)
+    
+    if not box_run:
+        return
+    
+    water_model = select_water_model()
+    solvent = [
+    f"gmx solvate -cp struct_new_box.gro -cs {water_model} -o struct_box_water.gro -p topol.top",
+    "touch ions.mdp",
+    "gmx grompp -f ions.mdp -c struct_box_water.gro -p topol.top -o ions.tpr",
+    f"gmx genion -s ions.tpr -o struct_box_water_ions.gro -p topol.top -pname NA -nname CL -neutral -conc {ions}" 
+    ]
+
+    solvent_run = run_commands_list(solvent)
+
+    if not solvent_run:
+        return
+    
     duration = float(md_param["nsteps"][0]) * float(md_param["dt"][0]) / 1000
     write_mdp(minim_param, "minim.mdp")
     write_mdp(md_param, f"md{int(duration)}ns.mdp")
     write_mdp(nvt_param, f"nvt.mdp")
     write_mdp(npt_param, f"npt.mdp")
-    subprocess.run("touch ions.mdp", shell=True)
-
-    ions = input(f"Salt concentration in M\n").strip() or 0
-
-    commands = [f'gmx pdb2gmx -ignh -f {selected_file} -o starting_structure.gro',
-    "gmx editconf -f starting_structure.gro -o struct_new_box -c -d 1.0 -bt dodecahedron",
-    "gmx solvate -cp struct_new_box.gro -cs tip4p -o struct_box_water.gro -p topol.top",
-    "gmx grompp -f ions.mdp -c struct_box_water.gro -p topol.top -o ions.tpr",
-    f"gmx genion -s ions.tpr -o struct_box_water_ions.gro -p topol.top -pname NA -nname CL -neutral -conc {ions}" ]
-
-    for command in commands:
-        subprocess.run(command, shell=True)
-
     md_name =  f"md{int(duration)}ns"
     make_runsh(md_name)
 
     if os.path.isfile(f"run_{md_name}.sh"):
         print(f"run_{md_name}.sh file created, ready to execute")
-    
+        
     
 
 if __name__ == "__main__":
