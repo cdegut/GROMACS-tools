@@ -9,7 +9,7 @@ from typing import Tuple
 #MARK: RG 
 #################
 
-def Rg(atomistic_system):
+def Rg(atomistic_system, solvent_value = True):
     fig, ax = plt.subplots()
     fig.set(figwidth=12)
     Rgyr = []
@@ -33,10 +33,11 @@ def Rg(atomistic_system):
 
     plt_smooth(ax,radius[1], radius[0],factor)
 
-    theta_Rg, expanded_Rg, collapsed_Rg = random_walk_Rgs(len(atomistic_system.residues.resids))
-    ax.axhline(y = expanded_Rg, color = 'g', linestyle = '-', alpha = 0.2, label=f"good solvent {expanded_Rg:.3}$\\AA$")
-    ax.axhline(y = theta_Rg, color = 'g', linestyle = '-', alpha = 0.5, label=f"theta solvent {theta_Rg:.3}$\\AA$")
-    ax.axhline(y = collapsed_Rg, color = 'g', linestyle = '-', alpha = 0.2, label=f"bad solvent {collapsed_Rg:.3}$\\AA$")
+    if solvent_value:
+        theta_Rg, expanded_Rg, collapsed_Rg = random_walk_Rgs(len(atomistic_system.residues.resids))
+        ax.axhline(y = expanded_Rg, color = 'g', linestyle = '-', alpha = 0.2, label=f"good solvent {expanded_Rg:.3}$\\AA$")
+        ax.axhline(y = theta_Rg, color = 'g', linestyle = '-', alpha = 0.5, label=f"theta solvent {theta_Rg:.3}$\\AA$")
+        ax.axhline(y = collapsed_Rg, color = 'g', linestyle = '-', alpha = 0.2, label=f"bad solvent {collapsed_Rg:.3}$\\AA$")
 
     rg_average = np.mean(radius[1,-1000:])
     ax.text(x=1.03, y=0.55, ha="left", va="top", s=f"Rg last ns: \n{rg_average:.3}$\\AA$", transform = ax.transAxes) 
