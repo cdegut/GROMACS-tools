@@ -77,12 +77,13 @@ def random_walk_Rgs(n_resids, Khun_lenght=False):
 def get_rolling_Rgs(atomistic_system, start, stop, residues_window):
     rolling_Rgs = np.zeros((stop - start, len(atomistic_system.residues.resids) - residues_window - 1))
 
+    start_resid = atomistic_system.residues[0].resid
     for k, ts in enumerate(range(start, stop)):
         atomistic_system.trajectory[ts]
 
-        for i in range(1, len(atomistic_system.residues.resids) - residues_window):
-            start = i
-            finish = i + residues_window
+        for i in range(0, len(atomistic_system.residues.resids) - residues_window):
+            start = i + start_resid
+            finish = i + residues_window + start_resid
             sele =  atomistic_system.select_atoms(f"resid {start} to {finish}")
             rolling_Rgs[k][i-1]= sele.radius_of_gyration()
         
@@ -91,6 +92,7 @@ def get_rolling_Rgs(atomistic_system, start, stop, residues_window):
     rolling_Rgs_avg = np.mean(rolling_Rgs, axis = 0)
 
     return np.column_stack((center_resids, rolling_Rgs_avg)).T
+
 
 ###############################
 ### 3D Distances plots #######
@@ -213,6 +215,7 @@ def multi_plot_distances(Rgyr,  distances_3Darray, contact_start, contact_finish
     start, end = ax1.get_ylim()
     ax1.yaxis.set_ticks(np.arange(start, end, 5))
     ax1.grid(visible = True, linestyle = '--', alpha=0.4)
+    ax1.set_aspect('equal')
 
     axins = inset_axes(ax1,width="5%", height="50%",  loc='center left', bbox_to_anchor=(1.05, 0., 1, 1), bbox_transform=ax1.transAxes, borderpad=0) 
     fig.colorbar(im2, cax = axins, ax=ax1, label="CoM to CoM distance  ($\\AA$)") 
