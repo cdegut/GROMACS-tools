@@ -299,7 +299,7 @@ def plot_every_diagonal(matrix, contact_start,contact_finish, cutoff):
     ax.yaxis.set_ticks(np.arange(start, end, 2))
     ax.grid(visible = True, linestyle = '--', alpha=0.4)
 
-def sele_distance(atomistic_system, seleA, seleB, random_walk_step, Khun_lengh):
+def simple_distance(atomistic_system, seleA, seleB, random_walk_step, Khun_lengh=None):
 
     distances = []
     for ts in atomistic_system.trajectory:
@@ -321,6 +321,6 @@ def sele_distance(atomistic_system, seleA, seleB, random_walk_step, Khun_lengh):
     ax.axhline(y = theta_Rg, color = 'g', linestyle = '-', alpha = 0.5, label="theta Solvent")
     #ax.axhline(y = collapsed_Rg, color = 'g', linestyle = '-', alpha = 0.2, label="bad Solvent")
     ax.set_xlabel('Time (ns)')
-    ax.set_ylabel(r'Rg  ($\AA$)')
+    ax.set_ylabel(r'Distance CoM to CoM ($\AA$)')
 
     #plt_median(ax,distances[0], label=True)

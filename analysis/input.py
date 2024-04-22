@@ -8,13 +8,14 @@ import modules.input
 ### Needed input
 #sim_path = "S:\\Work\\gromacs\\SasY\\double"
 ##sim_path = "S:\\Work\\gromacs\\Cr2RBM-2\\"
-sim_path = "D:\\MD\\SasY\\double"
+sim_path = "D:\\MD\\Shirt\\r3-4"
+name= 'md1000ns'
 ligand_name = None #set to None if no ligand
-coordinate_file_name = 'md250ns_po_start.pdb'             ##pdb / gro
-trajectory_file_name = 'md250ns_center_po.xtc'      ##xtc file
-auxiliary_file_name = 'md250ns.edr'              ##edr file
-reference_structure_path = 'md250ns_po_start.pdb'
-sim_name = 'default' ##output pdb file will use thise name, if set to "default" will use the auxilliary file name
+coordinate_file_name = f'{name}_po_start.pdb'             ##pdb / gro
+trajectory_file_name = f'{name}_center_po.xtc'      ##xtc file
+auxiliary_file_name = f'{name}.edr'              ##edr file
+reference_structure_path = f'{name}_po_start.pdb'
+sim_name = name ##output pdb file will use thise name, if set to "default" will use the auxilliary file name
 #############################################################
 #############################################################
 

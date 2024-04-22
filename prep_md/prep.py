@@ -80,40 +80,6 @@ def select_file(pdb_files):
         except ValueError:
             print("Invalid input. Please enter a number.")
 
-def make_runsh(md_name: str):
-    commands_list = [
-    "gmx grompp -f  minim.mdp -c struct_box_water_ions.gro -p topol.top -o em.tpr",
-    "gmx mdrun -v -deffnm em",
-    "##Run NVT equilibration",
-    "gmx grompp -f  nvt.mdp -c em.gro -r em.gro -p topol.top -o nvt.tpr",
-    "gmx mdrun -v -deffnm nvt",
-    "##Run NPT equilibration",
-    "gmx grompp -f  npt.mdp -c nvt.gro -r nvt.gro -t nvt.cpt -p topol.top -o npt.tpr",
-    "gmx mdrun -v -deffnm npt",
-    "##cleanup",
-    "mkdir pre_run",
-    "mv em* pre_run/",
-    "mv nvt* pre_run/",
-    "mv ions.tpr pre_run/",
-    "mv struct_* pre_run/",
-    "mv starting_structure.gro pre_run/.",
-    "mv posre.itp pre_run/.",
-    "mv *.log pre_run/.",
-    "mv *#* pre_run/.",
-    "##Run proper simulation",
-    f"gmx grompp -f  {md_name}.mdp -c npt.gro -t npt.cpt -p topol.top -o {md_name}.tpr",
-    f"gmx mdrun -pme gpu -v -deffnm {md_name}",
-    "mv npt* pre_run/",
-    "## generate light protein only files for analysis",
-    f"echo \"1 1\" | gmx trjconv -s {md_name}.tpr -f {md_name}.xtc -o {md_name}_center_po.xtc -center -pbc mol -ur compact",
-    f"echo \"1\" | gmx trjconv -s {md_name}.tpr -f {md_name}_center_po.xtc -o {md_name}_po_start.pdb -dump 0",
-    ]
-
-    with open(f"run_{md_name}.sh", 'w') as file:
-        for command in commands_list:
-            file.write(f"{command}\n")
-    subprocess.run(f"chmod +x run_{md_name}.sh", shell=True)    
-
 def select_water_model():
     model_list = ["spc216", "tip4p",  "tip5p"]
     water_model = 0
@@ -121,6 +87,55 @@ def select_water_model():
         water_model = input(f"Choose 1,2 o r3:\nFill box with:\n1: spc216 (default gromos)\n2: tip4p 216 (default opls)\n3: tip5p216\n").strip() or 2
 
     return model_list[int(water_model)-1]
+
+def select_box_type():
+    box_list = ["triclinic", "cubic", "dodecahedron", "octahedron"]
+    sel_box = 0
+
+    while int(sel_box) not in [1,2,3,4]:
+        sel_box = input(f"Choose box type: \n1: triclinic \n2: cubic\n3: dodecahedron (default)\n4: octahedron").strip() or 2
+    
+    box_type = box_list[int(sel_box)-1]
+
+    solvent_distance = input(f"Solvent distance in nm (1.2nm)").strip() or 1.2
+
+    return box_type, solvent_distance
+
+
+def make_runsh(md_name: str):
+    commands_list = [
+    "gmx grompp -f  minim.mdp -c struct_box_water_ions.gro -p topol.top -o em.tpr",
+    "gmx mdrun -v -deffnm em >> em.out 2>&1",
+    "##Run NVT equilibration",
+    "gmx grompp -f  nvt.mdp -c em.gro -r em.gro -p topol.top -o nvt.tpr",
+    "gmx mdrun -v -deffnm nvt >> nvt.out 2>&1",
+    "##Run NPT equilibration",
+    "gmx grompp -f  npt.mdp -c nvt.gro -r nvt.gro -t nvt.cpt -p topol.top -o npt.tpr",
+    "gmx mdrun -v -deffnm npt >> npt.out 2>&1",
+    f"gmx grompp -f  {md_name}.mdp -c npt.gro -t npt.cpt -p topol.top -o {md_name}.tpr",
+    "##cleanup",
+    "mkdir pre_run",
+    "mv em* pre_run/",
+    "mv nvt* pre_run/",
+    "mv npt* pre_run/",
+    "mv ions* pre_run/",
+    "mv struct_* pre_run/",
+    "mv starting_structure.gro pre_run/.",
+    "mv posre.itp pre_run/.",
+    "mv *.log pre_run/.",
+    "mv *#* pre_run/.",
+    "##Run proper simulation",
+    f"gmx mdrun -pme gpu -v -deffnm {md_name} >> {md_name}.out 2>&1",
+    "## generate light protein only files for analysis",
+    f"echo \"1 1\" | gmx trjconv -s {md_name}.tpr -f {md_name}.xtc -o {md_name}_center_po.xtc -center -pbc mol -ur compact",
+    f"echo \"1\" | gmx trjconv -s {md_name}.tpr -f {md_name}_center_po.xtc -o {md_name}_po_start.pdb -dump 0",
+    f"##### Read logfiles using: tail -f {md_name}.out"
+    ]
+
+    with open(f"run_{md_name}.sh", 'w') as file:
+        for command in commands_list:
+            file.write(f"{command}\n")
+    subprocess.run(f"chmod +x run_{md_name}.sh", shell=True)    
 
 def run_commands_list(commands):
 
@@ -146,16 +161,18 @@ def prep_run():
     set_temperature(md_param, 300)
     copy_temperature(md_param, [nvt_param, npt_param])
 
-    ions = input(f"Salt concentration in M\n").strip() or 0
+
+    box_type, solvent_distance = select_box_type()
 
     box = [f'gmx pdb2gmx -ignh -f {selected_file} -o starting_structure.gro',
-    "gmx editconf -f starting_structure.gro -o struct_new_box -c -d 1.0 -bt dodecahedron"]
+    f"gmx editconf -f starting_structure.gro -o struct_new_box -c -d {solvent_distance} -bt {box_type}"]
 
     box_run = run_commands_list(box)
     
     if not box_run:
         return
     
+    ions = input(f"Salt concentration in M\n").strip() or 0
     water_model = select_water_model()
     solvent = [
     f"gmx solvate -cp struct_new_box.gro -cs {water_model} -o struct_box_water.gro -p topol.top",
