@@ -3,6 +3,12 @@
 Step by step, and files to run MD simulation using GROMACS and the oplsaam forcefield on the bede cluster
 
 ## Without any ligand
+### new version
+use the prep.py script.
+answer questions
+run the .sh file.
+
+
 ### Prepping the run
 Make a folder for the run
 Download the latest oplsaam force field in your folder, or symlink to oplsaam.ff
