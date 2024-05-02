@@ -1,14 +1,10 @@
-# GROMACS-Run
-
-Step by step, and files to run MD simulation using GROMACS and the oplsaam forcefield on the bede cluster
-
-## Without any ligand
-### new version
+# No ligand
+## new version
 use the prep.py script.
 answer questions
 run the .sh file.
 
-
+## Old (or more granular)
 ### Prepping the run
 Make a folder for the run
 Download the latest oplsaam force field in your folder, or symlink to oplsaam.ff
@@ -35,14 +31,13 @@ gmx genion -s ions.tpr -o struct_box_water_ions.gro -p topol.top -pname NA -nnam
 ```
 option -conc ## to set concentration in mol/L
 
-
 Run slurm script gmxready.slurm
 ```
 sbatch gmxready.slurm
 ```
 or
 ```
-##Run minimization
+####Run minimization
 gmx grompp -f minim.mdp -c struct_box_water_ions.gro -p topol.top -o em.tpr
 gmx mdrun -v -deffnm em
 ##Run NVT equilibration
@@ -55,11 +50,9 @@ gmx mdrun -v -deffnm npt
 gmx grompp -f md1ns.mdp -c npt.gro -t npt.cpt -p topol.top -o md1ns.tpr
 gmx mdrun -pme gpu -v -deffnm md1ns
 ```
-### Run longer sym
-```
-gmx grompp -f md250ns.mdp -c md1ns.gro -t md1ns.cpt -p topol.top -o md250ns.tpr
-gmx mdrun -pme gpu -v -deffnm md250ns
-```
+
+# Random things
+## Run longer sym
 To detach command from terminal:
 ```
 nohup gmx mdrun -pme gpu -v -deffnm md250ns > md250ns.log &; disown
@@ -68,7 +61,37 @@ or using task-*spooler
 ```
 tsp bash -c "gmx mdrun -pme gpu -v -deffnm md250ns > md250ns.log"
 ```
-## With a ligand
+
+## Simple analysis
+Center the trajectory
+```
+gmx trjconv -s md250ns.tpr -f md250ns.xtc -o md250ns_center_po.xtc -center -pbc mol -ur compact
+```
+Select 1 and 1 to g get only the protein centered on the box, and obtain a much smaller file
+Or 1 and 0 to get everything
+
+Extract specific frame:
+```
+gmx trjconv -s md250ns.tpr -f md250ns_center_po.xtc -o md250ns_start.pdb -dump 0
+```
+Measure distance to periodic image
+```
+gmx mindist -s ###.tpr -f ###.xtc -pi
+```
+## Extend run
+```
+gmx convert-tpr -s md250ns.tpr -extend 300000 -o md550ns.tpr
+gmx mdrun -pme gpu -v -cpi md250ns.cpt -deffnm md550ns -noappend
+```
+cpt file is the output file with high precision and should be used rather than the gro file with truncated precision
+
+concatenate the rajectories files:
+```
+gmx trjcat -f *.xtc -o final.xtc
+gmx eneconv -f *.edr -o final.edr
+```
+
+# Ligand
 ### Docking
 Start by getting ligand, either the structure is simple enough to be directly drawn with  Avogadro.
 If structure is complex, may need to use MOPAC to get accurate geometry for the docking
@@ -183,30 +206,4 @@ Run slurm script gmxready_ligand.slurm
 sbatch gmxready_ligand.slurm
 ```
 
-# Random things
-## Simple analysis
-Center the trajectory after simulation using
-```
-gmx trjconv -s md250ns.tpr -f md250ns.xtc -o md250ns_center_po.xtc -center -pbc mol -ur compact
-```
-Select 1 and 1 to g get only the protein centered on the box, and obtain a much smaller file
-Or 1 and 0 to get everything
-
-Extract specific frame:
-```
-gmx trjconv -s md250ns.tpr -f md250ns_center_po.xtc -o md250ns_start.pdb -dump 0
-```
- 
-## Extend run
-```
-gmx convert-tpr -s md250ns.tpr -extend 300000 -o md550ns.tpr
-gmx mdrun -pme gpu -v -cpi md250ns.cpt -deffnm md550ns -noappend
-```
-cpt file is the output file with high precision and should be used rather than the gro file with truncated precision
-
-concatenate the rajectories files:
-```
-gmx trjcat -f *.xtc -o final.xtc
-gmx eneconv -f *.edr -o final.edr
-```
 
