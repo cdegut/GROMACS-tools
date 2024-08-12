@@ -6,10 +6,10 @@ import modules.input
 
 
 ### Needed input
-#sim_path = "S:\\Work\\gromacs\\SasY\\double"
+sim_path = "S:\\Work\\gromacs\\SasY\\double"
 ##sim_path = "S:\\Work\\gromacs\\Cr2RBM-2\\"
-sim_path = "D:\\MD\\Shirt\\r3-4"
-name= 'md1000ns'
+#sim_path = "D:\\MD\\Shirt\\r3-4"
+name= 'md250ns'
 ligand_name = None #set to None if no ligand
 coordinate_file_name = f'{name}_po_start.pdb'             ##pdb / gro
 trajectory_file_name = f'{name}_center_po.xtc'      ##xtc file
