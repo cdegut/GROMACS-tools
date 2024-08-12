@@ -9,9 +9,8 @@ from typing import Tuple
 #MARK: RG 
 #################
 
-def Rg(atomistic_system, solvent_value = True):
-    fig, ax = plt.subplots()
-    fig.set(figwidth=12)
+def Rg_calc(atomistic_system):
+
     Rgyr = []
     protein = atomistic_system.select_atoms("protein")
     for ts in atomistic_system.trajectory:
@@ -20,11 +19,17 @@ def Rg(atomistic_system, solvent_value = True):
     radius = np.array(Rgyr)
     radius = radius.T
 
+
+    return radius
+
+def Rg_plot(atomistic_system, radius, solvent_value = True):
+
+    fig, ax = plt.subplots()
+    fig.set(figwidth=12)
+
     ax.plot(radius[0]/1000, radius[1], label='Rg', alpha = 0.4)
     ax.set_xlabel('Time (ns)')
     ax.set_ylabel(r'Rg  ($\AA$)')
-
-
     # plt median and + 1 stdev
     if len(radius[0]) > 1000:
         factor = 1000
@@ -45,10 +50,13 @@ def Rg(atomistic_system, solvent_value = True):
 
     ax.set_xlim(0, len(radius.T)/100 )
     start, end = ax.get_xlim()
-    ax.xaxis.set_ticks(np.arange(start, end, 10))
+    if end - start <= 500:
+        ax.xaxis.set_ticks(np.arange(start, end, 10))
+    else:
+        ax.xaxis.set_ticks(np.arange(start, end, 50))
 
     start, end = ax.get_ylim()
-    yticks = np.arange(int(start), int(end), 5)
+    yticks = np.arange(int(start), int(end), 1)
     ax.yaxis.set_ticks(yticks)
 
     ax.grid(visible = True, linestyle = '--', alpha=0.4)
@@ -56,7 +64,6 @@ def Rg(atomistic_system, solvent_value = True):
     plt.legend(loc=(1.01, 0.6))
     plt.show()
 
-    return Rgyr
 
 def random_walk_Rgs(n_resids, Khun_lenght=False):
     
