@@ -1,6 +1,8 @@
 import default_parameter
+import ff_patch
 from copy import deepcopy
 import subprocess
+
 import os
 
 nvt_param = deepcopy(default_parameter.nvt)
@@ -65,6 +67,46 @@ def list_txt_files():
     pdb_files = [f for f in os.listdir() if os.path.isfile(f) and f.endswith('.pdb')]
     return pdb_files
 
+def select_ff():
+    
+    gromacs_path = subprocess.run("echo $GROMACS_DIR",shell=True, stdout = subprocess.PIPE, text=True)
+    pathlist = os.listdir(f"{gromacs_path.stdout.rstrip()}/share/gromacs/top/")
+    pathlist = [x for x in pathlist if x.endswith('.ff')]
+    pathlist.sort()
+    ff_dict = {}
+
+    i = 0
+    for ff in pathlist:
+        with open(f"{gromacs_path.stdout.rstrip()}/share/gromacs/top/{ff}/forcefield.doc") as f:
+            ff_dict[i] =  ff , f.readline().rstrip()
+            i = i+1
+
+    print("Please select a force field by entering its number:")
+    for i in ff_dict:
+        print(f"{i}. {ff_dict[i][1]}")
+    
+    while True:
+        try:
+            choice = int(input("Enter your choice: "))
+            if choice < 1 or choice > len(ff_dict)-1:
+                print("Invalid choice. Please enter a valid number.")
+            else:
+                return ff_dict[choice]
+        except ValueError:
+            print("Invalid input. Please enter a number.")
+
+
+def apply_ff_patch(ff, parameter_set):
+    print(ff)
+    if ff in ff_patch.patch_list:
+        print(ff_patch.patch_list[ff])
+        new_param = parameter_set | ff_patch.patch_list[ff]
+        print("patch applied !!")
+        return new_param
+    else:
+        return parameter_set
+
+
 def select_file(pdb_files):
     print("Please select a file by entering its number:")
     for i, file_name in enumerate(pdb_files):
@@ -84,7 +126,7 @@ def select_water_model():
     model_list = ["spc216", "tip4p",  "tip5p"]
     water_model = 0
     while int(water_model) not in [1,2,3]:
-        water_model = input(f"Choose 1,2 o r3:\nFill box with:\n1: spc216 (default gromos)\n2: tip4p 216 (default opls)\n3: tip5p216\n").strip() or 2
+        water_model = input(f"Choose 1,2 o r3:\nFill box with:\n1: tip3p spc216 (default gromos/amber)\n2: tip4p 216 (default opls)\n3: tip5p216\n").strip() or 2
 
     return model_list[int(water_model)-1]
 
@@ -93,7 +135,7 @@ def select_box_type():
     sel_box = 0
 
     while int(sel_box) not in [1,2,3,4]:
-        sel_box = input(f"Choose box type: \n1: triclinic \n2: cubic\n3: dodecahedron (default)\n4: octahedron").strip() or 2
+        sel_box = input(f"Choose box type: \n1: triclinic \n2: cubic\n3: dodecahedron (default)\n4: octahedron").strip() or 3
     
     box_type = box_list[int(sel_box)-1]
 
@@ -148,7 +190,9 @@ def run_commands_list(commands):
         
     return True
 
+
 def prep_run():
+
     pdb_files = list_txt_files()
     if not pdb_files :
         print("No .pdb files found in the current directory.")
@@ -164,7 +208,13 @@ def prep_run():
 
     box_type, solvent_distance = select_box_type()
 
-    box = [f'gmx pdb2gmx -ignh -f {selected_file} -o starting_structure.gro',
+    force_field = select_ff()
+
+    nvt_param = apply_ff_patch(force_field[0][:-3], nvt_param)
+    npt_param = apply_ff_patch(force_field[0][:-3], npt_param)
+    md_param = apply_ff_patch(force_field[0][:-3], md_param)
+
+    box = [f'gmx pdb2gmx -ignh -f {selected_file} -o starting_structure.gro -ff {force_field[0][:-3]}',         
     f"gmx editconf -f starting_structure.gro -o struct_new_box -c -d {solvent_distance} -bt {box_type}"]
 
     box_run = run_commands_list(box)
@@ -197,7 +247,12 @@ def prep_run():
     if os.path.isfile(f"run_{md_name}.sh"):
         print(f"run_{md_name}.sh file created, ready to execute")
         
+    return {'pdb': selected_file,'box type': box_type, 'solvant distance': solvent_distance, 
+            'Force Field': force_field, 'Salt concentration': ions, 'Initial duration':duration}
     
 
 if __name__ == "__main__":
-    prep_run()
+    parameters = prep_run()
+    with open('input_parameters.log', "w") as f:
+        for param in parameters:
+            f.write(f"{param}   {parameters[param]}\n")
