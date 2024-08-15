@@ -5,10 +5,7 @@ import subprocess
 
 import os
 
-nvt_param = deepcopy(default_parameter.nvt)
-npt_param = deepcopy(default_parameter.nvt)
-md_param = deepcopy(default_parameter.md)
-minim_param = deepcopy(default_parameter.minim)
+
 
 def read_mdp(mdp_file_name: str) ->dict:
     mdp_dict = {}
@@ -191,7 +188,7 @@ def run_commands_list(commands):
     return True
 
 
-def prep_run():
+def prep_run(minim_param,nvt_param,npt_param,md_param):
 
     pdb_files = list_txt_files()
     if not pdb_files :
@@ -213,6 +210,7 @@ def prep_run():
     nvt_param = apply_ff_patch(force_field[0][:-3], nvt_param)
     npt_param = apply_ff_patch(force_field[0][:-3], npt_param)
     md_param = apply_ff_patch(force_field[0][:-3], md_param)
+    minim_param = apply_ff_patch(force_field[0][:-3], minim_param)
 
     box = [f'gmx pdb2gmx -ignh -f {selected_file} -o starting_structure.gro -ff {force_field[0][:-3]}',         
     f"gmx editconf -f starting_structure.gro -o struct_new_box -c -d {solvent_distance} -bt {box_type}"]
@@ -252,7 +250,13 @@ def prep_run():
     
 
 if __name__ == "__main__":
-    parameters = prep_run()
+
+    nvt_param = deepcopy(default_parameter.nvt)
+    npt_param = deepcopy(default_parameter.nvt)
+    md_param = deepcopy(default_parameter.md)
+    minim_param = deepcopy(default_parameter.minim)
+
+    parameters = prep_run(minim_param,nvt_param,npt_param,md_param)
     with open('input_parameters.log', "w") as f:
         for param in parameters:
             f.write(f"{param}   {parameters[param]}\n")
