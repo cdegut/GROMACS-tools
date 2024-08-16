@@ -29,7 +29,11 @@ def read_mdp(mdp_file_name: str) ->dict:
 def write_mdp(mdp_dict: dict, filename: str):
     with open(filename, 'w') as file:
         for param in mdp_dict:
-            file.write(f"{param}\t\t=\t {mdp_dict[param][0]}\t; {mdp_dict[param][1]}\n")
+            file.write(f"{param}\t\t=\t{mdp_dict[param][0]}\t;")
+            if len(mdp_dict[param]) > 1:
+                for i in range(1, len(mdp_dict[param])):
+                    file.write(mdp_dict[param][i])
+            file.write("\n")
 
 
 def set_duration(parameter_set: dict, default: int) -> dict:
