@@ -89,7 +89,7 @@ def select_ff():
     while True:
         try:
             choice = int(input("Enter your choice: "))
-            if choice < 1 or choice > len(ff_dict)-1:
+            if choice > len(ff_dict)-1:
                 print("Invalid choice. Please enter a valid number.")
             else:
                 return ff_dict[choice]
@@ -229,7 +229,7 @@ def prep_run(minim_param,nvt_param,npt_param,md_param):
     solvent = [
     f"gmx solvate -cp struct_new_box.gro -cs {water_model} -o struct_box_water.gro -p topol.top",
     "touch ions.mdp",
-    "gmx grompp -f ions.mdp -c struct_box_water.gro -p topol.top -o ions.tpr",
+    "gmx grompp -f ions.mdp -c struct_box_water.gro -p topol.top -o ions.tpr -maxwarn 2",
     f"gmx genion -s ions.tpr -o struct_box_water_ions.gro -p topol.top -pname NA -nname CL -neutral -conc {ions}" 
     ]
 
