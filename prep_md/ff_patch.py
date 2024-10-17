@@ -12,8 +12,24 @@ CHARMM36 = {
 }
 
 amber99sbildn = {
-"vdw-modifier":  ["Potential-shift"] ,
-"DispCorr" : ["EnerPres"] }
+"constraints"           :  ["h-bonds",],
+"vdw-modifier"          :  ["Potential-shift-Verlet"] ,
+"coulombtype"           :  ['PME','Particle Mesh Ewald for long-range electrostatics'],
+"DispCorr"              :  ["EnerPres"],
+"fourierspacing"        :  ['0.125','grid spacing for FFT'] 
+}
 
-patch_list = {'CHARMM36': CHARMM36, "amber99sb-ildn" : amber99sbildn  }
+# from https://gromacs.bioexcel.eu/t/protein-ligand-complex-amber-production-question/1247
+amber99sbdisp = {
+"constraints"           :  ["h-bonds",],
+"vdw-modifier"          :  ["Potential-shift-Verlet"] ,
+"coulombtype"           :  ['PME','Particle Mesh Ewald for long-range electrostatics'],
+"DispCorr"              :  ["EnerPres"],
+"fourierspacing"        :  ['0.125','grid spacing for FFT']
+}
 
+#name is folder name without the .ff
+patch_list = {
+    'CHARMM36': CHARMM36, 
+    "amber99sb-ildn" : amber99sbildn, 
+    "a99SBdisp" : amber99sbdisp }
